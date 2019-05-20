@@ -22,10 +22,6 @@ __author__ = 'Rashad Kanavath'
 __date__ = 'June 2017'
 __copyright__ = "(C) 2017,2018 by CS Systemes d'information (CS SI), Centre National d'Etudes et spatiales (CNES)"
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 import os
 
 from qgis.PyQt.QtCore import QCoreApplication
@@ -53,7 +49,7 @@ from qgis.core import (Qgis,
 
 from processing.core.parameters import getParameterFromString
 from processing.algs.otb.OtbChoiceWidget import OtbParameterChoice
-from processing.algs.otb import OtbUtils
+from processing.algs.otb.OtbUtils import OtbUtils
 
 
 class OtbAlgorithm(QgsProcessingAlgorithm):
@@ -200,12 +196,12 @@ class OtbAlgorithm(QgsProcessingAlgorithm):
         return valid_params
 
     def processAlgorithm(self, parameters, context, feedback):
-        otb_cli_file = OtbUtils.cliPath()
-        command = '"{}" {} {}'.format(otb_cli_file, self.name(), OtbUtils.appFolder())
+        app_launcher_path = OtbUtils.getExecutableInPath(OtbUtils.otbFolder(), 'otbApplicationLauncherCommandLine')
+        command = '"{}" {} {}'.format(app_launcher_path, self.name(), OtbUtils.appFolder())
         outputPixelType = None
         for k, v in parameters.items():
             # if value is None for a parameter we don't have any businees with this key
-            if v is None:
+            if not v or v is None:
                 continue
             # for 'outputpixeltype' parameter we find the pixeltype string from self.pixelTypes
             if k == 'outputpixeltype':
@@ -219,7 +215,7 @@ class OtbAlgorithm(QgsProcessingAlgorithm):
             if isinstance(param, QgsProcessingParameterEnum):
                 value = self.parameterAsEnum(parameters, param.name(), context)
             elif isinstance(param, QgsProcessingParameterBoolean):
-                value = self.parameterAsBool(parameters, param.name(), context)
+                value = self.parameterAsBoolean(parameters, param.name(), context)
             elif isinstance(param, QgsProcessingParameterCrs):
                 crsValue = self.parameterAsCrs(parameters, param.name(), context)
                 authid = crsValue.authid()
@@ -258,16 +254,12 @@ class OtbAlgorithm(QgsProcessingAlgorithm):
 
         for out in self.destinationParameterDefinitions():
             filePath = self.parameterAsOutputLayer(parameters, out.name(), context)
-            output_files[out.name()] = filePath
-            if outputPixelType is not None:
-                command += ' -{} "{}" "{}"'.format(out.name(), filePath, outputPixelType)
-            else:
-                command += ' -{} "{}"'.format(out.name(), filePath)
-
-        QgsMessageLog.logMessage(self.tr('cmd={}'.format(command)), self.tr('Processing'), Qgis.Info)
-        if not os.path.exists(otb_cli_file) or not os.path.isfile(otb_cli_file):
-            import errno
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), otb_cli_file)
+            if filePath:
+                output_files[out.name()] = filePath
+                if outputPixelType is not None:
+                    command += ' -{} "{}" "{}"'.format(out.name(), filePath, outputPixelType)
+                else:
+                    command += ' -{} "{}"'.format(out.name(), filePath)
 
         OtbUtils.executeOtb(command, feedback)
 

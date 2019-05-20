@@ -165,7 +165,7 @@ void QgsLayerStylingWidget::setLayer( QgsMapLayer *layer )
 
   switch ( layer->type() )
   {
-    case QgsMapLayer::VectorLayer:
+    case QgsMapLayerType::VectorLayer:
     {
       QListWidgetItem *symbolItem = new QListWidgetItem( QgsApplication::getThemeIcon( QStringLiteral( "propertyicons/symbology.svg" ) ), QString() );
       symbolItem->setData( Qt::UserRole, Symbology );
@@ -184,7 +184,7 @@ void QgsLayerStylingWidget::setLayer( QgsMapLayer *layer )
 #endif
       break;
     }
-    case QgsMapLayer::RasterLayer:
+    case QgsMapLayerType::RasterLayer:
     {
       QListWidgetItem *symbolItem = new QListWidgetItem( QgsApplication::getThemeIcon( QStringLiteral( "propertyicons/symbology.svg" ) ), QString() );
       symbolItem->setData( Qt::UserRole, Symbology );
@@ -204,7 +204,7 @@ void QgsLayerStylingWidget::setLayer( QgsMapLayer *layer )
       }
       break;
     }
-    case QgsMapLayer::MeshLayer:
+    case QgsMapLayerType::MeshLayer:
     {
       QListWidgetItem *symbolItem = new QListWidgetItem( QgsApplication::getThemeIcon( QStringLiteral( "propertyicons/symbology.svg" ) ), QString() );
       symbolItem->setData( Qt::UserRole, Symbology );
@@ -220,11 +220,12 @@ void QgsLayerStylingWidget::setLayer( QgsMapLayer *layer )
       break;
     }
 
-    case QgsMapLayer::PluginLayer:
+    case QgsMapLayerType::PluginLayer:
       break;
   }
 
-  Q_FOREACH ( QgsMapLayerConfigWidgetFactory *factory, mPageFactories )
+  const auto constMPageFactories = mPageFactories;
+  for ( QgsMapLayerConfigWidgetFactory *factory : constMPageFactories )
   {
     if ( factory->supportsStyleDock() && factory->supportsLayer( layer ) )
     {
@@ -271,6 +272,7 @@ void QgsLayerStylingWidget::apply()
   QWidget *current = mWidgetStack->mainPanel();
 
   bool styleWasChanged = false;
+  bool triggerRepaint = false;  // whether the change needs the layer to be repainted
   if ( QgsLabelingWidget *widget = qobject_cast<QgsLabelingWidget *>( current ) )
   {
     widget->apply();
@@ -286,31 +288,34 @@ void QgsLayerStylingWidget::apply()
       QgsRendererAbstractMetadata *m = QgsApplication::rendererRegistry()->rendererMetadata( layer->renderer()->type() );
       undoName = QStringLiteral( "Style Change - %1" ).arg( m->visibleName() );
       styleWasChanged = true;
+      triggerRepaint = true;
     }
   }
   else if ( QgsRasterTransparencyWidget *widget = qobject_cast<QgsRasterTransparencyWidget *>( current ) )
   {
     widget->apply();
     styleWasChanged = true;
+    triggerRepaint = true;
   }
   else if ( qobject_cast<QgsRasterHistogramWidget *>( current ) )
   {
     mRasterStyleWidget->apply();
     styleWasChanged = true;
+    triggerRepaint = true;
   }
   else if ( QgsMapLayerConfigWidget *widget = qobject_cast<QgsMapLayerConfigWidget *>( current ) )
   {
     widget->apply();
     styleWasChanged = true;
+    triggerRepaint = widget->shouldTriggerLayerRepaint();
   }
 
-  pushUndoItem( undoName );
+  pushUndoItem( undoName, triggerRepaint );
 
   if ( styleWasChanged )
   {
     emit styleChanged( mCurrentLayer );
     QgsProject::instance()->setDirty( true );
-    mCurrentLayer->triggerRepaint();
   }
   connect( mCurrentLayer, &QgsMapLayer::styleChanged, this, &QgsLayerStylingWidget::updateCurrentWidgetLayer );
 }
@@ -403,7 +408,7 @@ void QgsLayerStylingWidget::updateCurrentWidgetLayer()
   {
     switch ( mCurrentLayer->type() )
     {
-      case QgsMapLayer::VectorLayer:
+      case QgsMapLayerType::VectorLayer:
       {
         QgsVectorLayer *vlayer = qobject_cast<QgsVectorLayer *>( mCurrentLayer );
 
@@ -456,7 +461,7 @@ void QgsLayerStylingWidget::updateCurrentWidgetLayer()
         break;
       }
 
-      case QgsMapLayer::RasterLayer:
+      case QgsMapLayerType::RasterLayer:
       {
         QgsRasterLayer *rlayer = qobject_cast<QgsRasterLayer *>( mCurrentLayer );
         bool hasMinMaxCollapsedState = false;
@@ -535,7 +540,7 @@ void QgsLayerStylingWidget::updateCurrentWidgetLayer()
         break;
       }
 
-      case QgsMapLayer::MeshLayer:
+      case QgsMapLayerType::MeshLayer:
       {
         QgsMeshLayer *meshLayer = qobject_cast<QgsMeshLayer *>( mCurrentLayer );
         switch ( row )
@@ -569,7 +574,7 @@ void QgsLayerStylingWidget::updateCurrentWidgetLayer()
         break;
       }
 
-      case QgsMapLayer::PluginLayer:
+      case QgsMapLayerType::PluginLayer:
       {
         mStackedWidget->setCurrentIndex( mNotSupportedPage );
         break;
@@ -608,25 +613,26 @@ void QgsLayerStylingWidget::liveApplyToggled( bool value )
   settings.setValue( QStringLiteral( "UI/autoApplyStyling" ), value );
 }
 
-void QgsLayerStylingWidget::pushUndoItem( const QString &name )
+void QgsLayerStylingWidget::pushUndoItem( const QString &name, bool triggerRepaint )
 {
   QString errorMsg;
   QDomDocument doc( QStringLiteral( "style" ) );
   QDomElement rootNode = doc.createElement( QStringLiteral( "qgis" ) );
   doc.appendChild( rootNode );
   mCurrentLayer->writeStyle( rootNode, doc, errorMsg, QgsReadWriteContext() );
-  mCurrentLayer->undoStackStyles()->push( new QgsMapLayerStyleCommand( mCurrentLayer, name, rootNode, mLastStyleXml ) );
+  mCurrentLayer->undoStackStyles()->push( new QgsMapLayerStyleCommand( mCurrentLayer, name, rootNode, mLastStyleXml, triggerRepaint ) );
   // Override the last style on the stack
   mLastStyleXml = rootNode.cloneNode();
 }
 
 
-QgsMapLayerStyleCommand::QgsMapLayerStyleCommand( QgsMapLayer *layer, const QString &text, const QDomNode &current, const QDomNode &last )
+QgsMapLayerStyleCommand::QgsMapLayerStyleCommand( QgsMapLayer *layer, const QString &text, const QDomNode &current, const QDomNode &last, bool triggerRepaint )
   : QUndoCommand( text )
   , mLayer( layer )
   , mXml( current )
   , mLastState( last )
   , mTime( QTime::currentTime() )
+  , mTriggerRepaint( triggerRepaint )
 {
 }
 
@@ -635,7 +641,8 @@ void QgsMapLayerStyleCommand::undo()
   QString error;
   QgsReadWriteContext context = QgsReadWriteContext();
   mLayer->readStyle( mLastState, error, context );
-  mLayer->triggerRepaint();
+  if ( mTriggerRepaint )
+    mLayer->triggerRepaint();
 }
 
 void QgsMapLayerStyleCommand::redo()
@@ -643,7 +650,8 @@ void QgsMapLayerStyleCommand::redo()
   QString error;
   QgsReadWriteContext context = QgsReadWriteContext();
   mLayer->readStyle( mXml, error, context );
-  mLayer->triggerRepaint();
+  if ( mTriggerRepaint )
+    mLayer->triggerRepaint();
 }
 
 bool QgsMapLayerStyleCommand::mergeWith( const QUndoCommand *other )
@@ -664,6 +672,7 @@ bool QgsMapLayerStyleCommand::mergeWith( const QUndoCommand *other )
 
   mXml = otherCmd->mXml;
   mTime = otherCmd->mTime;
+  mTriggerRepaint |= otherCmd->mTriggerRepaint;
   return true;
 }
 
@@ -675,7 +684,7 @@ QgsLayerStyleManagerWidgetFactory::QgsLayerStyleManagerWidgetFactory()
 
 QgsMapLayerConfigWidget *QgsLayerStyleManagerWidgetFactory::createWidget( QgsMapLayer *layer, QgsMapCanvas *canvas, bool dockMode, QWidget *parent ) const
 {
-  Q_UNUSED( dockMode );
+  Q_UNUSED( dockMode )
   return new QgsMapLayerStyleManagerWidget( layer,  canvas, parent );
 
 }
@@ -684,12 +693,12 @@ bool QgsLayerStyleManagerWidgetFactory::supportsLayer( QgsMapLayer *layer ) cons
 {
   switch ( layer->type() )
   {
-    case QgsMapLayer::VectorLayer:
-    case QgsMapLayer::RasterLayer:
-    case QgsMapLayer::MeshLayer:
+    case QgsMapLayerType::VectorLayer:
+    case QgsMapLayerType::RasterLayer:
+    case QgsMapLayerType::MeshLayer:
       return true;
 
-    case QgsMapLayer::PluginLayer:
+    case QgsMapLayerType::PluginLayer:
       return false;
   }
   return false; // no warnings

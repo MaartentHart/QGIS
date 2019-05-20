@@ -20,8 +20,6 @@
 __author__ = 'Nathan Woodrow'
 __date__ = 'November 2018'
 __copyright__ = '(C) 2018, Nathan Woodrow'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
 
 from collections import OrderedDict
 from functools import partial
@@ -53,6 +51,7 @@ from qgis.core import (QgsProcessingParameterDefinition,
                        QgsProcessingParameterMultipleLayers,
                        QgsProcessingParameterPoint,
                        QgsProcessingParameterRange,
+                       QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterVectorLayer,
                        QgsProcessingParameterMeshLayer,
                        QgsProcessingOutputString,
@@ -425,6 +424,7 @@ class ProcessingAlgFactory():
             alg.SOURCE: QgsProcessingParameterFeatureSource
             alg.FILE_DEST: QgsProcessingParameterFileDestination
             alg.FOLDER_DEST: QgsProcessingParameterFolderDestination
+            alg.RASTER_LAYER: QgsProcessingParameterRasterLayer
             alg.RASTER_LAYER_DEST: QgsProcessingParameterRasterDestination
             alg.VECTOR_LAYER_DEST: QgsProcessingParameterVectorDestination
             alg.BAND: QgsProcessingParameterBand
@@ -472,6 +472,7 @@ input_type_mapping = {
     ProcessingAlgFactory.SOURCE: QgsProcessingParameterFeatureSource,
     ProcessingAlgFactory.FILE_DEST: QgsProcessingParameterFileDestination,
     ProcessingAlgFactory.FOLDER_DEST: QgsProcessingParameterFolderDestination,
+    ProcessingAlgFactory.RASTER_LAYER: QgsProcessingParameterRasterLayer,
     ProcessingAlgFactory.RASTER_LAYER_DEST: QgsProcessingParameterRasterDestination,
     ProcessingAlgFactory.VECTOR_LAYER_DEST: QgsProcessingParameterVectorDestination,
     ProcessingAlgFactory.BAND: QgsProcessingParameterBand,

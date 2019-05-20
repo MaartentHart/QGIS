@@ -13,8 +13,6 @@ the Free Software Foundation; either version 2 of the License, or
 __author__ = 'René-Luc Dhont'
 __date__ = '19/09/2017'
 __copyright__ = 'Copyright 2017, The QGIS Project'
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
 
 import os
 
@@ -91,6 +89,10 @@ class TestQgsServerWFS(QgsServerTestBase):
         self.assertXMLEqual(response, expected, msg="request %s failed.\n Query: %s" % (
             query_string, request))
         return header, body
+
+    def test_operation_not_supported(self):
+        qs = '?MAP=%s&SERVICE=WFS&VERSION=1.1.0&REQUEST=NotAValidRequest' % urllib.parse.quote(self.projectPath)
+        self._assert_status_code(501, qs)
 
     def test_project_wfs(self):
         """Test some WFS request"""
@@ -374,6 +376,13 @@ class TestQgsServerWFS(QgsServerTestBase):
     def test_getFeatureBBOX(self):
         """Test with (1.1.0) and without (1.0.0) CRS"""
 
+        # Tests without CRS
+        self.wfs_request_compare(
+            "GetFeature", '1.0.0', "TYPENAME=testlayer&RESULTTYPE=hits&BBOX=8.20347,44.901471,8.2035354,44.901493", 'wfs_getFeature_1_0_0_bbox_1_feature')
+        self.wfs_request_compare(
+            "GetFeature", '1.0.0', "TYPENAME=testlayer&RESULTTYPE=hits&BBOX=8.203127,44.9012765,8.204138,44.901632", 'wfs_getFeature_1_0_0_bbox_3_feature')
+
+        # Tests with CRS
         self.wfs_request_compare(
             "GetFeature", '1.0.0', "SRSNAME=EPSG:4326&TYPENAME=testlayer&RESULTTYPE=hits&BBOX=8.20347,44.901471,8.2035354,44.901493,EPSG:4326", 'wfs_getFeature_1_0_0_epsgbbox_1_feature')
         self.wfs_request_compare(

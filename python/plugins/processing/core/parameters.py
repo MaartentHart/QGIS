@@ -21,10 +21,6 @@ __author__ = 'Victor Olaya'
 __date__ = 'August 2012'
 __copyright__ = '(C) 2012, Victor Olaya'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 import sys
 
 from qgis.core import (QgsRasterLayer,
@@ -66,6 +62,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 PARAMETER_NUMBER = 'number'
 PARAMETER_DISTANCE = 'distance'
+PARAMETER_SCALE = 'scale'
 PARAMETER_RASTER = 'raster'
 PARAMETER_TABLE = 'vector'
 PARAMETER_VECTOR = 'source'

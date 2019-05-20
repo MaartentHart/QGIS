@@ -28,6 +28,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/src/core/fieldformatter
   ${CMAKE_SOURCE_DIR}/src/test
   ${CMAKE_SOURCE_DIR}/src/native
+  ${CMAKE_SOURCE_DIR}/external
 
   ${CMAKE_BINARY_DIR}/src/analysis
   ${CMAKE_BINARY_DIR}/src/core
@@ -121,6 +122,7 @@ ADD_QGIS_TEST(edittooltest testqgsmaptooledit.cpp)
 
 #ADD_QGIS_TEST(histogramtest testqgsrasterhistogram.cpp)
 ADD_QGIS_TEST(categorizedrendererwidget testqgscategorizedrendererwidget.cpp)
+ADD_QGIS_TEST(datumtransformdialog testqgsdatumtransformdialog.cpp)
 ADD_QGIS_TEST(doublespinbox testqgsdoublespinbox.cpp)
 ADD_QGIS_TEST(dualviewtest testqgsdualview.cpp)
 ADD_QGIS_TEST(attributeformtest testqgsattributeform.cpp)

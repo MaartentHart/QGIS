@@ -21,10 +21,6 @@ __author__ = 'Victor Olaya'
 __date__ = 'August 2012'
 __copyright__ = '(C) 2012, Victor Olaya'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 import math
 
 from qgis.PyQt.QtCore import (Qt,
@@ -55,6 +51,7 @@ from qgis.core import (QgsApplication,
                        QgsProcessingParameterMultipleLayers,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterDistance,
+                       QgsProcessingParameterScale,
                        QgsProcessingParameterRange,
                        QgsProcessingParameterRasterLayer,
                        QgsProcessingParameterEnum,
@@ -224,8 +221,8 @@ class ModelerParameterDefinitionDialog(QDialog):
             if self.param is not None:
                 self.datatypeCombo.setCurrentIndex(self.datatypeCombo.findData(self.param.layerType()))
             self.verticalLayout.addWidget(self.datatypeCombo)
-        elif (self.paramType == parameters.PARAMETER_NUMBER or self.paramType == parameters.PARAMETER_DISTANCE or
-              isinstance(self.param, (QgsProcessingParameterNumber, QgsProcessingParameterDistance))):
+        elif (self.paramType in (parameters.PARAMETER_NUMBER, parameters.PARAMETER_DISTANCE, parameters.PARAMETER_SCALE) or
+              isinstance(self.param, (QgsProcessingParameterNumber, QgsProcessingParameterDistance, QgsProcessingParameterScale))):
 
             if (self.paramType == parameters.PARAMETER_DISTANCE or
                     isinstance(self.param, QgsProcessingParameterDistance)):
@@ -245,7 +242,8 @@ class ModelerParameterDefinitionDialog(QDialog):
                                 self.parentCombo.setCurrentIndex(idx)
                         idx += 1
                 self.verticalLayout.addWidget(self.parentCombo)
-            else:
+            elif (self.paramType != parameters.PARAMETER_SCALE and not
+                    isinstance(self.param, QgsProcessingParameterScale)):
                 self.verticalLayout.addWidget(QLabel(self.tr('Number type')))
                 self.type_combo = QComboBox()
                 self.type_combo.addItem(self.tr('Float'), QgsProcessingParameterNumber.Double)
@@ -254,15 +252,17 @@ class ModelerParameterDefinitionDialog(QDialog):
                     self.type_combo.setCurrentIndex(self.type_combo.findData(self.param.dataType()))
                 self.verticalLayout.addWidget(self.type_combo)
 
-            self.verticalLayout.addWidget(QLabel(self.tr('Min value')))
-            self.minTextBox = QLineEdit()
-            self.verticalLayout.addWidget(self.minTextBox)
-            self.verticalLayout.addWidget(QLabel(self.tr('Max value')))
-            self.maxTextBox = QLineEdit()
-            self.verticalLayout.addWidget(self.maxTextBox)
-            if self.param is not None:
-                self.minTextBox.setText(str(self.param.minimum()))
-                self.maxTextBox.setText(str(self.param.maximum()))
+            if (self.paramType != parameters.PARAMETER_SCALE and not
+                    isinstance(self.param, QgsProcessingParameterScale)):
+                self.verticalLayout.addWidget(QLabel(self.tr('Min value')))
+                self.minTextBox = QLineEdit()
+                self.verticalLayout.addWidget(self.minTextBox)
+                self.verticalLayout.addWidget(QLabel(self.tr('Max value')))
+                self.maxTextBox = QLineEdit()
+                self.verticalLayout.addWidget(self.maxTextBox)
+                if self.param is not None:
+                    self.minTextBox.setText(str(self.param.minimum()))
+                    self.maxTextBox.setText(str(self.param.maximum()))
             self.verticalLayout.addWidget(QLabel(self.tr('Default value')))
             self.defaultTextBox = QLineEdit()
             self.defaultTextBox.setText(self.tr('0'))
@@ -475,6 +475,10 @@ class ModelerParameterDefinitionDialog(QDialog):
             parent = self.parentCombo.currentData()
             if parent:
                 self.param.setParentParameterName(parent)
+        elif (self.paramType == parameters.PARAMETER_SCALE or
+              isinstance(self.param, QgsProcessingParameterScale)):
+            self.param = QgsProcessingParameterScale(name, description,
+                                                     self.defaultTextBox.text())
         elif (self.paramType == parameters.PARAMETER_NUMBER or
               isinstance(self.param, QgsProcessingParameterNumber)):
 

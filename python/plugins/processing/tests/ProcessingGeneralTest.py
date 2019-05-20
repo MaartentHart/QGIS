@@ -21,10 +21,6 @@ __author__ = 'Nyall Dawson'
 __date__ = 'January 2019'
 __copyright__ = '(C) 2019, Nyall Dawson'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = ':%H$'
-
 import nose2
 import shutil
 import gc
@@ -32,7 +28,8 @@ import gc
 from qgis.core import (QgsApplication,
                        QgsProcessing,
                        QgsProcessingContext,
-                       QgsVectorLayer)
+                       QgsVectorLayer,
+                       QgsProject)
 from qgis.PyQt import sip
 from qgis.analysis import (QgsNativeAlgorithms)
 from qgis.testing import start_app, unittest
@@ -90,6 +87,26 @@ class TestProcessingGeneral(unittest.TestCase):
         del context
         gc.collect()
         self.assertTrue(sip.isdeleted(layer))
+
+    def testRunAndLoadResults(self):
+        QgsProject.instance().removeAllMapLayers()
+        context = QgsProcessingContext()
+
+        # try running an alg using processing.runAndLoadResults - ownership of result layer should be transferred to
+        # project, and layer should be present in project
+        res = processing.runAndLoadResults('qgis:buffer',
+                                           {'DISTANCE': 1, 'INPUT': points(), 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT},
+                                           context=context)
+        self.assertIn('OUTPUT', res)
+        # output should be the layer path
+        self.assertIsInstance(res['OUTPUT'], str)
+
+        self.assertEqual(context.layersToLoadOnCompletion()[res['OUTPUT']].project, QgsProject.instance())
+        layer = QgsProject.instance().mapLayer(res['OUTPUT'])
+        self.assertIsInstance(layer, QgsVectorLayer)
+
+        # Python should NOT have ownership
+        self.assertFalse(sip.ispyowned(layer))
 
 
 if __name__ == '__main__':

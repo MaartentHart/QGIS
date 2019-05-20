@@ -44,6 +44,7 @@
 #include "qgsprintlayout.h"
 #include "qgslayoutmanager.h"
 #include "qgslayoutitemlabel.h"
+#include "qgscoordinatetransformcontext.h"
 
 class DummyAlgorithm : public QgsProcessingAlgorithm
 {
@@ -544,6 +545,7 @@ class TestQgsProcessing: public QObject
     void parameterLayerList();
     void parameterNumber();
     void parameterDistance();
+    void parameterScale();
     void parameterRange();
     void parameterRasterLayer();
     void parameterEnum();
@@ -1031,41 +1033,41 @@ void TestQgsProcessing::mapLayers()
   QString vector = testDataDir + "points.shp";
 
   // test loadMapLayerFromString with raster
-  QgsMapLayer *l = QgsProcessingUtils::loadMapLayerFromString( raster );
+  QgsMapLayer *l = QgsProcessingUtils::loadMapLayerFromString( raster, QgsCoordinateTransformContext() );
   QVERIFY( l->isValid() );
-  QCOMPARE( l->type(), QgsMapLayer::RasterLayer );
+  QCOMPARE( l->type(), QgsMapLayerType::RasterLayer );
   QCOMPARE( l->name(), QStringLiteral( "landsat" ) );
 
   delete l;
 
   //test with vector
-  l = QgsProcessingUtils::loadMapLayerFromString( vector );
+  l = QgsProcessingUtils::loadMapLayerFromString( vector, QgsCoordinateTransformContext() );
   QVERIFY( l->isValid() );
-  QCOMPARE( l->type(), QgsMapLayer::VectorLayer );
+  QCOMPARE( l->type(), QgsMapLayerType::VectorLayer );
   QCOMPARE( l->name(), QStringLiteral( "points" ) );
   delete l;
 
-  l = QgsProcessingUtils::loadMapLayerFromString( QString() );
+  l = QgsProcessingUtils::loadMapLayerFromString( QString(), QgsCoordinateTransformContext() );
   QVERIFY( !l );
-  l = QgsProcessingUtils::loadMapLayerFromString( QStringLiteral( "so much room for activities!" ) );
+  l = QgsProcessingUtils::loadMapLayerFromString( QStringLiteral( "so much room for activities!" ), QgsCoordinateTransformContext() );
   QVERIFY( !l );
-  l = QgsProcessingUtils::loadMapLayerFromString( testDataDir + "multipoint.shp" );
+  l = QgsProcessingUtils::loadMapLayerFromString( testDataDir + "multipoint.shp", QgsCoordinateTransformContext() );
   QVERIFY( l->isValid() );
-  QCOMPARE( l->type(), QgsMapLayer::VectorLayer );
+  QCOMPARE( l->type(), QgsMapLayerType::VectorLayer );
   QCOMPARE( l->name(), QStringLiteral( "multipoint" ) );
   delete l;
 
   // Test layers from a string with parameters
   QString osmFilePath = testDataDir + "openstreetmap/testdata.xml";
-  std::unique_ptr< QgsVectorLayer > osm( qobject_cast< QgsVectorLayer *>( QgsProcessingUtils::loadMapLayerFromString( osmFilePath ) ) );
+  std::unique_ptr< QgsVectorLayer > osm( qobject_cast< QgsVectorLayer *>( QgsProcessingUtils::loadMapLayerFromString( osmFilePath, QgsCoordinateTransformContext() ) ) );
   QVERIFY( osm->isValid() );
   QCOMPARE( osm->geometryType(), QgsWkbTypes::PointGeometry );
 
-  osm.reset( qobject_cast< QgsVectorLayer *>( QgsProcessingUtils::loadMapLayerFromString( osmFilePath + "|layerid=3" ) ) );
+  osm.reset( qobject_cast< QgsVectorLayer *>( QgsProcessingUtils::loadMapLayerFromString( osmFilePath + "|layerid=3", QgsCoordinateTransformContext() ) ) );
   QVERIFY( osm->isValid() );
   QCOMPARE( osm->geometryType(), QgsWkbTypes::PolygonGeometry );
 
-  osm.reset( qobject_cast< QgsVectorLayer *>( QgsProcessingUtils::loadMapLayerFromString( osmFilePath + "|layerid=3|subset=\"building\" is not null" ) ) );
+  osm.reset( qobject_cast< QgsVectorLayer *>( QgsProcessingUtils::loadMapLayerFromString( osmFilePath + "|layerid=3|subset=\"building\" is not null", QgsCoordinateTransformContext() ) ) );
   QVERIFY( osm->isValid() );
   QCOMPARE( osm->geometryType(), QgsWkbTypes::PolygonGeometry );
   QCOMPARE( osm->subsetString(), QStringLiteral( "\"building\" is not null" ) );
@@ -1140,20 +1142,20 @@ void TestQgsProcessing::mapLayerFromString()
   QVERIFY( !c.getMapLayer( QString() ) );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( raster1, c ), r1 );
   QCOMPARE( c.getMapLayer( raster1 ), r1 );
-  QCOMPARE( QgsProcessingUtils::mapLayerFromString( raster1, c, true, QgsProcessingUtils::Raster ), r1 );
-  QVERIFY( !QgsProcessingUtils::mapLayerFromString( raster1, c, true, QgsProcessingUtils::Vector ) );
+  QCOMPARE( QgsProcessingUtils::mapLayerFromString( raster1, c, true, QgsProcessingUtils::LayerHint::Raster ), r1 );
+  QVERIFY( !QgsProcessingUtils::mapLayerFromString( raster1, c, true, QgsProcessingUtils::LayerHint::Vector ) );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( raster2, c ), r2 );
   QCOMPARE( c.getMapLayer( raster2 ), r2 );
-  QVERIFY( !QgsProcessingUtils::mapLayerFromString( raster2, c, true, QgsProcessingUtils::Vector ) );
+  QVERIFY( !QgsProcessingUtils::mapLayerFromString( raster2, c, true, QgsProcessingUtils::LayerHint::Vector ) );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( "R1", c ), r1 );
   QCOMPARE( c.getMapLayer( "R1" ), r1 );
-  QVERIFY( !QgsProcessingUtils::mapLayerFromString( "R1", c, true, QgsProcessingUtils::Vector ) );
+  QVERIFY( !QgsProcessingUtils::mapLayerFromString( "R1", c, true, QgsProcessingUtils::LayerHint::Vector ) );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( "ar2", c ), r2 );
   QCOMPARE( c.getMapLayer( "ar2" ), r2 );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( "V4", c ), v1 );
   QCOMPARE( c.getMapLayer( "V4" ), v1 );
-  QCOMPARE( QgsProcessingUtils::mapLayerFromString( "V4", c, true, QgsProcessingUtils::Vector ), v1 );
-  QVERIFY( !QgsProcessingUtils::mapLayerFromString( "V4", c, true, QgsProcessingUtils::Raster ) );
+  QCOMPARE( QgsProcessingUtils::mapLayerFromString( "V4", c, true, QgsProcessingUtils::LayerHint::Vector ), v1 );
+  QVERIFY( !QgsProcessingUtils::mapLayerFromString( "V4", c, true, QgsProcessingUtils::LayerHint::Raster ) );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( "v1", c ), v2 );
   QCOMPARE( c.getMapLayer( "v1" ), v2 );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( r1->id(), c ), r1 );
@@ -1167,8 +1169,8 @@ void TestQgsProcessing::mapLayerFromString()
   c.temporaryLayerStore()->addMapLayers( QList<QgsMapLayer *>() << v5 << v6 );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( "V5", c ), v5 );
   QCOMPARE( c.getMapLayer( "V5" ), v5 );
-  QCOMPARE( QgsProcessingUtils::mapLayerFromString( "V5", c, true, QgsProcessingUtils::Vector ), v5 );
-  QVERIFY( !QgsProcessingUtils::mapLayerFromString( "V5", c, true, QgsProcessingUtils::Raster ) );
+  QCOMPARE( QgsProcessingUtils::mapLayerFromString( "V5", c, true, QgsProcessingUtils::LayerHint::Vector ), v5 );
+  QVERIFY( !QgsProcessingUtils::mapLayerFromString( "V5", c, true, QgsProcessingUtils::LayerHint::Raster ) );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( "v6", c ), v6 );
   QCOMPARE( c.getMapLayer( "v6" ), v6 );
   QCOMPARE( QgsProcessingUtils::mapLayerFromString( v5->id(), c ), v5 );
@@ -1187,7 +1189,7 @@ void TestQgsProcessing::mapLayerFromString()
   // allow loading
   QgsMapLayer *loadedLayer = QgsProcessingUtils::mapLayerFromString( newRaster, c, true );
   QVERIFY( loadedLayer->isValid() );
-  QCOMPARE( loadedLayer->type(), QgsMapLayer::RasterLayer );
+  QCOMPARE( loadedLayer->type(), QgsMapLayerType::RasterLayer );
   // should now be in temporary store
   QCOMPARE( c.temporaryLayerStore()->mapLayer( loadedLayer->id() ), loadedLayer );
 
@@ -1826,16 +1828,21 @@ void TestQgsProcessing::parameters()
   // as bool
   def->setName( QStringLiteral( "double" ) );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   def->setName( QStringLiteral( "int" ) );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   def->setName( QStringLiteral( "bool" ) );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   def->setName( QStringLiteral( "prop" ) );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   f.setAttribute( 0, false );
   context.expressionContext().setFeature( f );
   def->setName( QStringLiteral( "prop" ) );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
 
   // as layer
   def->setName( QStringLiteral( "double" ) );
@@ -1971,6 +1978,12 @@ void TestQgsProcessing::parameterGeneral()
   param.metadata().insert( "p3", 9 );
   QCOMPARE( param.metadata().value( "p3" ).toInt(), 9 );
 
+  QVERIFY( param.additionalExpressionContextVariables().isEmpty() );
+  param.setAdditionalExpressionContextVariables( QStringList() << "a" << "b" );
+  QCOMPARE( param.additionalExpressionContextVariables(), QStringList() << "a" << "b" );
+  std::unique_ptr< QgsProcessingParameterDefinition > param2( param.clone() );
+  QCOMPARE( param2->additionalExpressionContextVariables(), QStringList() << "a" << "b" );
+
   QVariantMap map = param.toVariantMap();
   QgsProcessingParameterBoolean fromMap( "x" );
   QVERIFY( fromMap.fromVariantMap( map ) );
@@ -1989,12 +2002,16 @@ void TestQgsProcessing::parameterBoolean()
   QVariantMap params;
   params.insert( "no_def",  false );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( nullptr, params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( nullptr, params, context ), false );
   params.insert( "no_def",  "false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( nullptr, params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( nullptr, params, context ), false );
   params.insert( "no_def",  QVariant() );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( nullptr, params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( nullptr, params, context ), false );
   params.remove( "no_def" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( nullptr, params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( nullptr, params, context ), false );
 
   // with defs
 
@@ -2007,18 +2024,24 @@ void TestQgsProcessing::parameterBoolean()
 
   params.insert( "non_optional_default_false",  false );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   params.insert( "non_optional_default_false",  true );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "non_optional_default_false",  "true" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "non_optional_default_false",  "false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
 
   //non-optional - behavior is undefined, but internally default to false
   params.insert( "non_optional_default_false",  QVariant() );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   params.remove( "non_optional_default_false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
 
   QCOMPARE( def->valueAsPythonString( false, context ), QStringLiteral( "False" ) );
   QCOMPARE( def->valueAsPythonString( true, context ), QStringLiteral( "True" ) );
@@ -2060,17 +2083,23 @@ void TestQgsProcessing::parameterBoolean()
 
   params.insert( "optional_default_true",  false );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   params.insert( "optional_default_true",  true );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "optional_default_true",  "true" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "optional_default_true",  "false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   //optional - should be default
   params.insert( "optional_default_true",  QVariant() );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.remove( "optional_default_true" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
 
   pythonCode = def->asPythonString();
   QCOMPARE( pythonCode, QStringLiteral( "QgsProcessingParameterBoolean('optional_default_true', '', optional=True, defaultValue=True)" ) );
@@ -2099,17 +2128,23 @@ void TestQgsProcessing::parameterBoolean()
 
   params.insert( "optional_default_false",  false );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   params.insert( "optional_default_false",  true );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "optional_default_false",  "true" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "optional_default_false",  "false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   //optional - should be default
   params.insert( "optional_default_false",  QVariant() );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   params.remove( "optional_default_false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
 
   pythonCode = def->asPythonString();
   QCOMPARE( pythonCode, QStringLiteral( "QgsProcessingParameterBoolean('optional_default_false', '', optional=True, defaultValue=False)" ) );
@@ -2132,17 +2167,23 @@ void TestQgsProcessing::parameterBoolean()
 
   params.insert( "non_optional_default_true",  false );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   params.insert( "non_optional_default_true",  true );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "non_optional_default_true",  "true" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.insert( "non_optional_default_true",  "false" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), false );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), false );
   //non-optional - behavior is undefined, but internally fallback to default
   params.insert( "non_optional_default_true",  QVariant() );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
   params.remove( "non_optional_default_true" );
   QCOMPARE( QgsProcessingParameters::parameterAsBool( def.get(), params, context ), true );
+  QCOMPARE( QgsProcessingParameters::parameterAsBoolean( def.get(), params, context ), true );
 
   pythonCode = def->asPythonString();
   QCOMPARE( pythonCode, QStringLiteral( "QgsProcessingParameterBoolean('non_optional_default_true', '', defaultValue=True)" ) );
@@ -2773,6 +2814,8 @@ void TestQgsProcessing::parameterPoint()
   QVERIFY( !def->checkValueIsAcceptable( QVariant() ) );
   QVERIFY( def->checkValueIsAcceptable( QgsPointXY( 1, 2 ) ) );
   QVERIFY( def->checkValueIsAcceptable( QgsReferencedPointXY( QgsPointXY( 1, 2 ), QgsCoordinateReferenceSystem( "EPSG:4326" ) ) ) );
+  QVERIFY( def->checkValueIsAcceptable( QgsGeometry::fromPointXY( QgsPointXY( 1, 2 ) ) ) );
+  QVERIFY( def->checkValueIsAcceptable( QgsGeometry::fromWkt( QStringLiteral( "LineString(10 10, 20 20)" ) ) ) );
 
   // string representing a point
   QVariantMap params;
@@ -2846,15 +2889,32 @@ void TestQgsProcessing::parameterPoint()
   QCOMPARE( QgsProcessingParameters::parameterAsPointCrs( def.get(), params, context ).authid(), QStringLiteral( "EPSG:4326" ) );
 
   // with target CRS
+  params.insert( "non_optional", QgsReferencedPointXY( QgsPointXY( 1.1, 2.2 ), QgsCoordinateReferenceSystem( "EPSG:4326" ) ) );
   point = QgsProcessingParameters::parameterAsPoint( def.get(), params, context, QgsCoordinateReferenceSystem( "EPSG:3785" ) );
   QGSCOMPARENEAR( point.x(), 122451, 100 );
   QGSCOMPARENEAR( point.y(), 244963, 100 );
+
+  // QgsGeometry
+  params.insert( "non_optional", QgsGeometry::fromPointXY( QgsPointXY( 13.1, 14.2 ) ) );
+  point = QgsProcessingParameters::parameterAsPoint( def.get(), params, context );
+  QGSCOMPARENEAR( point.x(), 13.1, 0.001 );
+  QGSCOMPARENEAR( point.y(), 14.2, 0.001 );
+  // non point geometry should use centroid
+  params.insert( "non_optional", QgsGeometry::fromWkt( QStringLiteral( "LineString( 10 10, 20 10)" ) ) );
+  point = QgsProcessingParameters::parameterAsPoint( def.get(), params, context );
+  QGSCOMPARENEAR( point.x(), 15.0, 0.001 );
+  QGSCOMPARENEAR( point.y(), 10.0, 0.001 );
+  // with target CRS - should make no difference, because source CRS is unknown
+  point = QgsProcessingParameters::parameterAsPoint( def.get(), params, context, QgsCoordinateReferenceSystem( "EPSG:3785" ) );
+  QGSCOMPARENEAR( point.x(), 15.0, 0.001 );
+  QGSCOMPARENEAR( point.y(), 10.0, 0.001 );
 
   QCOMPARE( def->valueAsPythonString( QVariant(), context ), QStringLiteral( "None" ) );
   QCOMPARE( def->valueAsPythonString( "1,2", context ), QStringLiteral( "'1,2'" ) );
   QCOMPARE( def->valueAsPythonString( "1,2 [EPSG:4326]", context ), QStringLiteral( "'1,2 [EPSG:4326]'" ) );
   QCOMPARE( def->valueAsPythonString( QgsPointXY( 11, 12 ), context ), QStringLiteral( "'11,12'" ) );
   QCOMPARE( def->valueAsPythonString( QgsReferencedPointXY( QgsPointXY( 11, 12 ), QgsCoordinateReferenceSystem( "epsg:4326" ) ), context ), QStringLiteral( "'11,12 [EPSG:4326]'" ) );
+  QCOMPARE( def->valueAsPythonString( QgsGeometry::fromWkt( QStringLiteral( "LineString( 10 10, 20 20)" ) ), context ), QStringLiteral( "QgsGeometry.fromWkt('LineString (10 10, 20 20)')" ) );
 
   QString pythonCode = def->asPythonString();
   QCOMPARE( pythonCode, QStringLiteral( "QgsProcessingParameterPoint('non_optional', '', defaultValue='1,2')" ) );
@@ -3444,6 +3504,105 @@ void TestQgsProcessing::parameterDistance()
   QCOMPARE( def->parentParameterName(), QStringLiteral( "parent" ) );
   def->setParentParameterName( QStringLiteral( "parent2" ) );
   QCOMPARE( def->parentParameterName(), QStringLiteral( "parent2" ) );
+  QVERIFY( def->checkValueIsAcceptable( 5 ) );
+  QVERIFY( def->checkValueIsAcceptable( "1.1" ) );
+  QVERIFY( !def->checkValueIsAcceptable( "1.1,2" ) );
+  QVERIFY( !def->checkValueIsAcceptable( "layer12312312" ) );
+  QVERIFY( !def->checkValueIsAcceptable( "" ) );
+  QVERIFY( !def->checkValueIsAcceptable( QVariant() ) ); // should NOT be acceptable, falls back to invalid default value
+}
+
+void TestQgsProcessing::parameterScale()
+{
+  QgsProcessingContext context;
+
+  // not optional!
+  std::unique_ptr< QgsProcessingParameterScale > def( new QgsProcessingParameterScale( "non_optional", QString(), 5, false ) );
+
+  QVERIFY( def->checkValueIsAcceptable( 5 ) );
+  QVERIFY( def->checkValueIsAcceptable( "1.1" ) );
+  QVERIFY( !def->checkValueIsAcceptable( "1.1,2" ) );
+  QVERIFY( !def->checkValueIsAcceptable( "layer12312312" ) );
+  QVERIFY( !def->checkValueIsAcceptable( "" ) );
+  QVERIFY( def->checkValueIsAcceptable( QVariant() ) ); // should be acceptable, falls back to default value
+
+  // string representing a number
+  QVariantMap params;
+  params.insert( "non_optional", QString( "1.1" ) );
+  double number = QgsProcessingParameters::parameterAsDouble( def.get(), params, context );
+  QGSCOMPARENEAR( number, 1.1, 0.001 );
+
+  // double
+  params.insert( "non_optional", 1.1 );
+  number = QgsProcessingParameters::parameterAsDouble( def.get(), params, context );
+  QGSCOMPARENEAR( number, 1.1, 0.001 );
+  // int
+  params.insert( "non_optional", 1 );
+  number = QgsProcessingParameters::parameterAsDouble( def.get(), params, context );
+  QGSCOMPARENEAR( number, 1, 0.001 );
+
+  // nonsense string
+  params.insert( "non_optional", QString( "i'm not a number, and nothing you can do will make me one" ) );
+  number = QgsProcessingParameters::parameterAsDouble( def.get(), params, context );
+  QCOMPARE( number, 5.0 );
+
+  // with min value
+  def->setMinimum( 11 );
+  QVERIFY( !def->checkValueIsAcceptable( 5 ) );
+  QVERIFY( !def->checkValueIsAcceptable( "1.1" ) );
+  QVERIFY( def->checkValueIsAcceptable( 25 ) );
+  QVERIFY( def->checkValueIsAcceptable( "21.1" ) );
+  // with max value
+  def->setMaximum( 21 );
+  QVERIFY( !def->checkValueIsAcceptable( 35 ) );
+  QVERIFY( !def->checkValueIsAcceptable( "31.1" ) );
+  QVERIFY( def->checkValueIsAcceptable( 15 ) );
+  QVERIFY( def->checkValueIsAcceptable( "11.1" ) );
+
+  QCOMPARE( def->valueAsPythonString( QVariant(), context ), QStringLiteral( "None" ) );
+  QCOMPARE( def->valueAsPythonString( 5, context ), QStringLiteral( "5" ) );
+  QCOMPARE( def->valueAsPythonString( QStringLiteral( "1.1" ), context ), QStringLiteral( "1.1" ) );
+  QCOMPARE( def->valueAsPythonString( QVariant::fromValue( QgsProperty::fromExpression( "\"a\"=1" ) ), context ), QStringLiteral( "QgsProperty.fromExpression('\"a\"=1')" ) );
+
+  QVariantMap map = def->toVariantMap();
+  QgsProcessingParameterScale fromMap( "x" );
+  QVERIFY( fromMap.fromVariantMap( map ) );
+  QCOMPARE( fromMap.name(), def->name() );
+  QCOMPARE( fromMap.description(), def->description() );
+  QCOMPARE( fromMap.flags(), def->flags() );
+  QCOMPARE( fromMap.defaultValue(), def->defaultValue() );
+  def.reset( dynamic_cast< QgsProcessingParameterScale *>( QgsProcessingParameters::parameterFromVariantMap( map ) ) );
+  QVERIFY( dynamic_cast< QgsProcessingParameterScale *>( def.get() ) );
+
+  QString pythonCode = def->asPythonString();
+  QCOMPARE( pythonCode, QStringLiteral( "QgsProcessingParameterScale('non_optional', '', defaultValue=5)" ) );
+
+  QString code = def->asScriptCode();
+  QCOMPARE( code, QStringLiteral( "##non_optional=scale 5" ) );
+  std::unique_ptr< QgsProcessingParameterScale > fromCode( dynamic_cast< QgsProcessingParameterScale * >( QgsProcessingParameters::parameterFromScriptCode( code ) ) );
+  QVERIFY( fromCode.get() );
+  QCOMPARE( fromCode->name(), def->name() );
+  QCOMPARE( fromCode->description(), QStringLiteral( "non optional" ) );
+  QCOMPARE( fromCode->flags(), def->flags() );
+  QCOMPARE( fromCode->defaultValue(), def->defaultValue() );
+
+  // optional
+  def.reset( new QgsProcessingParameterScale( "optional", QString(), 5.4, true ) );
+  QVERIFY( def->checkValueIsAcceptable( 5 ) );
+  QVERIFY( def->checkValueIsAcceptable( "1.1" ) );
+  QVERIFY( def->checkValueIsAcceptable( "" ) );
+  QVERIFY( def->checkValueIsAcceptable( QVariant() ) );
+
+  params.insert( "optional",  QVariant() );
+  number = QgsProcessingParameters::parameterAsDouble( def.get(), params, context );
+  QGSCOMPARENEAR( number, 5.4, 0.001 );
+  // unconvertible string
+  params.insert( "optional",  QVariant( "aaaa" ) );
+  number = QgsProcessingParameters::parameterAsDouble( def.get(), params, context );
+  QGSCOMPARENEAR( number, 5.4, 0.001 );
+
+  // non-optional, invalid default
+  def.reset( new QgsProcessingParameterScale( "non_optional", QString(), QVariant(), false ) );
   QVERIFY( def->checkValueIsAcceptable( 5 ) );
   QVERIFY( def->checkValueIsAcceptable( "1.1" ) );
   QVERIFY( !def->checkValueIsAcceptable( "1.1,2" ) );
@@ -5294,7 +5453,7 @@ void TestQgsProcessing::parameterVectorOut()
   QCOMPARE( context.layersToLoadOnCompletion().size(), 1 );
   QCOMPARE( context.layersToLoadOnCompletion().keys().at( 0 ), QStringLiteral( "test.shp" ) );
   QCOMPARE( context.layersToLoadOnCompletion().values().at( 0 ).name, QStringLiteral( "desc" ) );
-  QCOMPARE( context.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::Vector );
+  QCOMPARE( context.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::LayerHint::Vector );
 
   // with name overloading
   QgsProcessingContext context2;
@@ -5307,7 +5466,7 @@ void TestQgsProcessing::parameterVectorOut()
   QCOMPARE( context2.layersToLoadOnCompletion().keys().at( 0 ), QStringLiteral( "test.shp" ) );
   QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).name, QStringLiteral( "my_dest" ) );
   QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).outputName, QStringLiteral( "x" ) );
-  QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::Vector );
+  QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::LayerHint::Vector );
 
   QgsProcessingContext context3;
   params.insert( QStringLiteral( "x" ), QgsProcessing::TEMPORARY_OUTPUT );
@@ -5323,6 +5482,8 @@ void TestQgsProcessing::parameterVectorOut()
   def.reset( new QgsProcessingParameterVectorDestination( "with_geom", QString(), QgsProcessing::TypeVectorAnyGeometry, QString(), true ) );
   DummyProvider3 provider;
   QString error;
+  QVERIFY( provider.isSupportedOutputValue( QVariant(), def.get(), context, error ) ); // optional
+  QVERIFY( provider.isSupportedOutputValue( QString(), def.get(), context, error ) ); // optional
   QVERIFY( !provider.isSupportedOutputValue( "d:/test.shp", def.get(), context, error ) );
   QVERIFY( !provider.isSupportedOutputValue( "d:/test.SHP", def.get(), context, error ) );
   QVERIFY( !provider.isSupportedOutputValue( "ogr:d:/test.shp", def.get(), context, error ) );
@@ -5331,6 +5492,9 @@ void TestQgsProcessing::parameterVectorOut()
   QVERIFY( provider.isSupportedOutputValue( "d:/test.MIF", def.get(), context, error ) );
   QVERIFY( provider.isSupportedOutputValue( "ogr:d:/test.MIF", def.get(), context, error ) );
   QVERIFY( provider.isSupportedOutputValue( QgsProcessingOutputLayerDefinition( "d:/test.MIF" ), def.get(), context, error ) );
+  def.reset( new QgsProcessingParameterVectorDestination( "with_geom", QString(), QgsProcessing::TypeVectorAnyGeometry, QString(), false ) );
+  QVERIFY( !provider.isSupportedOutputValue( QVariant(), def.get(), context, error ) ); // non-optional
+  QVERIFY( !provider.isSupportedOutputValue( QString(), def.get(), context, error ) ); // non-optional
 
   provider.loadAlgorithms();
   def->mOriginalProvider = &provider;
@@ -5446,6 +5610,8 @@ void TestQgsProcessing::parameterRasterOut()
 
   DummyProvider3 provider;
   QString error;
+  QVERIFY( !provider.isSupportedOutputValue( QVariant(), def.get(), context, error ) );
+  QVERIFY( !provider.isSupportedOutputValue( QString(), def.get(), context, error ) );
   QVERIFY( !provider.isSupportedOutputValue( "d:/test.tif", def.get(), context, error ) );
   QVERIFY( !provider.isSupportedOutputValue( "d:/test.TIF", def.get(), context, error ) );
   QVERIFY( !provider.isSupportedOutputValue( QgsProcessingOutputLayerDefinition( "d:/test.tif" ), def.get(), context, error ) );
@@ -5464,7 +5630,7 @@ void TestQgsProcessing::parameterRasterOut()
   QCOMPARE( context.layersToLoadOnCompletion().size(), 1 );
   QCOMPARE( context.layersToLoadOnCompletion().keys().at( 0 ), QStringLiteral( "test.tif" ) );
   QCOMPARE( context.layersToLoadOnCompletion().values().at( 0 ).name, QStringLiteral( "desc" ) );
-  QCOMPARE( context.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::Raster );
+  QCOMPARE( context.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::LayerHint::Raster );
 
   // with name overloading
   QgsProcessingContext context2;
@@ -5477,7 +5643,7 @@ void TestQgsProcessing::parameterRasterOut()
   QCOMPARE( context2.layersToLoadOnCompletion().keys().at( 0 ), QStringLiteral( "test.tif" ) );
   QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).name, QStringLiteral( "my_dest" ) );
   QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).outputName, QStringLiteral( "x" ) );
-  QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::Raster );
+  QCOMPARE( context2.layersToLoadOnCompletion().values().at( 0 ).layerTypeHint, QgsProcessingUtils::LayerHint::Raster );
 }
 
 void TestQgsProcessing::parameterFileOut()
@@ -6104,7 +6270,8 @@ void TestQgsProcessing::checkParamValues()
 
 void TestQgsProcessing::combineLayerExtent()
 {
-  QgsRectangle ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() );
+  QgsProcessingContext context;
+  QgsRectangle ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>(), QgsCoordinateReferenceSystem(), context );
   QVERIFY( ext.isNull() );
 
   QString testDataDir = QStringLiteral( TEST_DATA_DIR ) + '/'; //defined in CmakeLists.txt
@@ -6116,20 +6283,20 @@ void TestQgsProcessing::combineLayerExtent()
   QFileInfo fi2( raster2 );
   std::unique_ptr< QgsRasterLayer > r2( new QgsRasterLayer( fi2.filePath(), "R2" ) );
 
-  ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() << r1.get() );
+  ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() << r1.get(), QgsCoordinateReferenceSystem(), context );
   QGSCOMPARENEAR( ext.xMinimum(), 1535375.000000, 10 );
   QGSCOMPARENEAR( ext.xMaximum(), 1535475, 10 );
   QGSCOMPARENEAR( ext.yMinimum(), 5083255, 10 );
   QGSCOMPARENEAR( ext.yMaximum(), 5083355, 10 );
 
-  ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() << r1.get() << r2.get() );
+  ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() << r1.get() << r2.get(), QgsCoordinateReferenceSystem(), context );
   QGSCOMPARENEAR( ext.xMinimum(), 781662, 10 );
   QGSCOMPARENEAR( ext.xMaximum(), 1535475, 10 );
   QGSCOMPARENEAR( ext.yMinimum(), 3339523, 10 );
   QGSCOMPARENEAR( ext.yMaximum(), 5083355, 10 );
 
   // with reprojection
-  ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() << r1.get() << r2.get(), QgsCoordinateReferenceSystem::fromEpsgId( 3785 ) );
+  ext = QgsProcessingUtils::combineLayerExtents( QList< QgsMapLayer *>() << r1.get() << r2.get(), QgsCoordinateReferenceSystem::fromEpsgId( 3785 ), context );
   QGSCOMPARENEAR( ext.xMinimum(), 1995320, 10 );
   QGSCOMPARENEAR( ext.xMaximum(), 2008833, 10 );
   QGSCOMPARENEAR( ext.yMinimum(), 3523084, 10 );
@@ -7757,6 +7924,14 @@ void TestQgsProcessing::convertCompatible()
   // layer should be returned unchanged - underlying source is compatible
   QCOMPARE( out, layer->source() );
 
+  // path with layer suffix
+  QString vectorWithLayer = testDataDir + "points.shp|layername=points";
+  QgsVectorLayer *layer2 = new QgsVectorLayer( vectorWithLayer, "vl" );
+  p.addMapLayer( layer2 );
+  out = QgsProcessingUtils::convertToCompatibleFormat( layer2, false, QStringLiteral( "test" ), QStringList() << "shp", QString( "shp" ), context, &feedback );
+  // layer should be returned unchanged - underlying source is compatible
+  QCOMPARE( out, vector );
+
   // don't include shp as compatible type
   out = QgsProcessingUtils::convertToCompatibleFormat( layer, false, QStringLiteral( "test" ), QStringList() << "tab", QString( "tab" ), context, &feedback );
   QVERIFY( out != layer->source() );
@@ -7834,20 +8009,21 @@ void TestQgsProcessing::convertCompatible()
   std::unique_ptr< QgsVectorLayer > gpkgLayer = qgis::make_unique< QgsVectorLayer >( gpkgPath, "vl" );
   QVERIFY( gpkgLayer->isValid() );
   out = QgsProcessingUtils::convertToCompatibleFormat( gpkgLayer.get(), false, QStringLiteral( "test" ), QStringList() << "gpkg" << "shp", QString( "shp" ), context, &feedback );
-  // layer should be returned unchanged - underlying source is compatible
-  QCOMPARE( out, gpkgLayer->source() );
+  // layer must be translated -- we do not know if external tool can handle picking the correct layer automatically
+  QCOMPARE( out, testDataDir + QStringLiteral( "points_gpkg.gpkg" ) );
   gpkgPath = testDataDir + "points_gpkg.gpkg|layername=points_small";
   gpkgLayer = qgis::make_unique< QgsVectorLayer >( gpkgPath, "vl" );
   QVERIFY( gpkgLayer->isValid() );
   out = QgsProcessingUtils::convertToCompatibleFormat( gpkgLayer.get(), false, QStringLiteral( "test" ), QStringList() << "gpkg" << "shp", QString( "shp" ), context, &feedback );
-  QCOMPARE( out, gpkgLayer->source() );
+  QVERIFY( out.endsWith( ".shp" ) );
+  QVERIFY( out.startsWith( QgsProcessingUtils::tempFolder() ) );
 
   // also test evaluating parameter to compatible format
   std::unique_ptr< QgsProcessingParameterDefinition > def( new QgsProcessingParameterFeatureSource( QStringLiteral( "source" ) ) );
   QVariantMap params;
   params.insert( QStringLiteral( "source" ), QgsProcessingFeatureSourceDefinition( layer->id(), false ) );
   out = QgsProcessingParameters::parameterAsCompatibleSourceLayerPath( def.get(), params, context, QStringList() << "shp", QString( "shp" ), &feedback );
-  QCOMPARE( out, layer->source() );
+  QCOMPARE( out, testDataDir + "points.shp" );
 
   // incompatible format, will be converted
   out = QgsProcessingParameters::parameterAsCompatibleSourceLayerPath( def.get(), params, context, QStringList() << "tab", QString( "tab" ), &feedback );
@@ -7858,7 +8034,7 @@ void TestQgsProcessing::convertCompatible()
   // layer as input
   params.insert( QStringLiteral( "source" ), QVariant::fromValue( layer ) );
   out = QgsProcessingParameters::parameterAsCompatibleSourceLayerPath( def.get(), params, context, QStringList() << "shp", QString( "shp" ), &feedback );
-  QCOMPARE( out, layer->source() );
+  QCOMPARE( out, testDataDir + "points.shp" );
 
   // incompatible format, will be converted
   out = QgsProcessingParameters::parameterAsCompatibleSourceLayerPath( def.get(), params, context, QStringList() << "tab", QString( "tab" ), &feedback );
@@ -7877,12 +8053,12 @@ void TestQgsProcessing::convertCompatible()
   def.reset( new QgsProcessingParameterFeatureSource( QStringLiteral( "source" ), QString(), QList<int>(), QVariant::fromValue( layer ) ) );
   params.remove( QStringLiteral( "source" ) );
   out = QgsProcessingParameters::parameterAsCompatibleSourceLayerPath( def.get(), params, context, QStringList() << "shp", QString( "shp" ), &feedback );
-  QCOMPARE( out, layer->source() );
+  QCOMPARE( out, testDataDir + "points.shp" );
 
   // output layer as input - e.g. from a previous model child
   params.insert( QStringLiteral( "source" ), QgsProcessingOutputLayerDefinition( layer->id() ) );
   out = QgsProcessingParameters::parameterAsCompatibleSourceLayerPath( def.get(), params, context, QStringList() << "shp", QString( "shp" ), &feedback );
-  QCOMPARE( out, layer->source() );
+  QCOMPARE( out, testDataDir + "points.shp" );
 }
 
 void TestQgsProcessing::create()

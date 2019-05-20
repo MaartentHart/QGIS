@@ -72,10 +72,7 @@ QVariant QgsGeometryValidationModel::data( const QModelIndex &index, int role ) 
     switch ( role )
     {
       case Qt::DecorationRole:
-        if ( topologyError->status() == QgsGeometryCheckError::StatusFixed )
-          return QgsApplication::getThemeIcon( QStringLiteral( "/algorithms/mAlgorithmCheckGeometry.svg" ) );
-        else
-          return QgsApplication::getThemeIcon( QStringLiteral( "/algorithms/mAlgorithmLineIntersections.svg" ) );
+        return topologyError->icon();
 
       case Qt::DisplayRole:
       case DetailsRole:
@@ -166,13 +163,7 @@ QVariant QgsGeometryValidationModel::data( const QModelIndex &index, int role ) 
 
       case Qt::DecorationRole:
       {
-#if 0
-        if ( mGeometryValidationService->validationActive( mCurrentLayer, featureItem.fid ) )
-          return QgsApplication::getThemeIcon( "/mActionTracing.svg" );
-        else
-          return QVariant();
-#endif
-        break;
+        return QgsApplication::getThemeIcon( "/checks/InvalidGeometry.svg" );
       }
 
       case GeometryCheckErrorRole:
@@ -193,12 +184,18 @@ QVariant QgsGeometryValidationModel::data( const QModelIndex &index, int role ) 
 
       case ErrorLocationGeometryRole:
       {
+        if ( featureItem.errors.empty() )
+          return QVariant();
+
         QgsSingleGeometryCheckError *error = featureItem.errors.first().get();
         return error->errorLocation();
       }
 
       case ProblemExtentRole:
       {
+        if ( featureItem.errors.empty() )
+          return QVariant();
+
         QgsSingleGeometryCheckError *error = featureItem.errors.first().get();
         return error->errorLocation().boundingBox();
       }
@@ -257,6 +254,7 @@ void QgsGeometryValidationModel::onSingleGeometryCheckCleared( QgsVectorLayer *l
 
   if ( mCurrentLayer == layer && !layerErrors.empty() )
   {
+    emit aboutToRemoveSingleGeometryCheck();
     beginRemoveRows( QModelIndex(), 0, layerErrors.size() - 1 );
   }
 
@@ -279,7 +277,10 @@ void QgsGeometryValidationModel::onGeometryCheckCompleted( QgsVectorLayer *layer
   if ( featureIdx > -1 && errors.empty() ) // && !mGeometryValidationService->validationActive( layer, fid ) )
   {
     if ( mCurrentLayer == layer )
+    {
+      emit aboutToRemoveSingleGeometryCheck();
       beginRemoveRows( QModelIndex(), featureIdx, featureIdx );
+    }
 
     layerErrors.removeAt( featureIdx );
 

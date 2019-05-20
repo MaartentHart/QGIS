@@ -99,6 +99,7 @@
 %Include auto_generated/qgsprojectstorageregistry.sip
 %Include auto_generated/qgsprojecttranslator.sip
 %Include auto_generated/qgsprojectversion.sip
+%Include auto_generated/qgsprojutils.sip
 %Include auto_generated/qgsproperty.sip
 %Include auto_generated/qgspropertycollection.sip
 %Include auto_generated/qgspropertytransformer.sip
@@ -241,6 +242,7 @@
 %Include auto_generated/mesh/qgsmeshlayerinterpolator.sip
 %Include auto_generated/mesh/qgsmeshrenderersettings.sip
 %Include auto_generated/mesh/qgsmeshspatialindex.sip
+%Include auto_generated/mesh/qgsmeshtimesettings.sip
 %Include auto_generated/scalebar/qgsdoubleboxscalebarrenderer.sip
 %Include auto_generated/scalebar/qgsnumericscalebarrenderer.sip
 %Include auto_generated/scalebar/qgsscalebarsettings.sip

@@ -325,7 +325,7 @@ void QgsVectorLayerRenderer::drawRenderer( QgsFeatureIterator &fit )
     }
     catch ( const QgsCsException &cse )
     {
-      Q_UNUSED( cse );
+      Q_UNUSED( cse )
       QgsDebugMsg( QStringLiteral( "Failed to transform a point while drawing a feature with ID '%1'. Ignoring this feature. %2" )
                    .arg( fet.id() ).arg( cse.what() ) );
     }
@@ -469,7 +469,7 @@ void QgsVectorLayerRenderer::drawRendererLevels( QgsFeatureIterator &fit )
         }
         catch ( const QgsCsException &cse )
         {
-          Q_UNUSED( cse );
+          Q_UNUSED( cse )
           QgsDebugMsg( QStringLiteral( "Failed to transform a point while drawing a feature with ID '%1'. Ignoring this feature. %2" )
                        .arg( fet.id() ).arg( cse.what() ) );
         }
@@ -496,6 +496,7 @@ void QgsVectorLayerRenderer::stopRenderer( QgsSingleSymbolRenderer *selRenderer 
 
 void QgsVectorLayerRenderer::prepareLabeling( QgsVectorLayer *layer, QSet<QString> &attributeNames )
 {
+  // TODO: add attributes for geometry generator
   if ( QgsLabelingEngine *engine2 = mContext.labelingEngine() )
   {
     if ( layer->labelsEnabled() )

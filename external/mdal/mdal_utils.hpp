@@ -24,6 +24,9 @@
 
 namespace MDAL
 {
+  // endianness
+  bool isNativeLittleEndian();
+
   // numbers
   bool equals( double val1, double val2, double eps = std::numeric_limits<double>::epsilon() );
 
@@ -58,6 +61,7 @@ namespace MDAL
 
   /** Return 0 if not possible to convert */
   size_t toSizeT( const std::string &str );
+  size_t toSizeT( const char &str );
   int toInt( const std::string &str );
   double toDouble( const std::string &str );
   bool toBool( const std::string &str );
@@ -107,8 +111,12 @@ namespace MDAL
   Statistics calculateStatistics( std::shared_ptr<Dataset> dataset );
 
   // mesh & datasets
-  //! Add bed elevatiom dataset group to mesh
+  //! Adds bed elevatiom dataset group to mesh
   void addBedElevationDatasetGroup( MDAL::Mesh *mesh, const Vertices &vertices );
+  //! Adds face scalar dataset group to mesh
+  void addFaceScalarDatasetGroup( MDAL::Mesh *mesh, const std::vector<double> &values, const std::string &name );
+  //! Loop through all faces and activate those which has all 4 values on vertices valid
+  void activateFaces( MDAL::MemoryMesh *mesh, std::shared_ptr<MemoryDataset> dataset );
 
 } // namespace MDAL
 #endif //MDAL_UTILS_HPP

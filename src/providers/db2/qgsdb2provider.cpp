@@ -235,6 +235,7 @@ QSqlDatabase QgsDb2Provider::getDatabase( const QString &connInfo, QString &errM
   db.setPort( port.toInt() );
   bool connected = false;
   int i = 0;
+  QgsCredentials::instance()->lock();
   while ( !connected && i < 3 )
   {
     i++;
@@ -248,6 +249,7 @@ QSqlDatabase QgsDb2Provider::getDatabase( const QString &connInfo, QString &errM
       {
         errMsg = QStringLiteral( "Cancel clicked" );
         QgsDebugMsg( errMsg );
+        QgsCredentials::instance()->unlock();
         break;
       }
     }
@@ -289,6 +291,7 @@ QSqlDatabase QgsDb2Provider::getDatabase( const QString &connInfo, QString &errM
   {
     QgsCredentials::instance()->put( databaseName, userName, password );
   }
+  QgsCredentials::instance()->unlock();
 
   return db;
 }
@@ -1286,11 +1289,8 @@ QgsVectorLayerExporter::ExportError QgsDb2Provider::createEmptyLayer( const QStr
     const QgsCoordinateReferenceSystem &srs,
     bool overwrite,
     QMap<int, int> *oldToNewAttrIdxMap,
-    QString *errorMessage,
-    const QMap<QString, QVariant> *options )
+    QString *errorMessage )
 {
-  Q_UNUSED( options );
-
   // populate members from the uri structure
   QgsDataSourceUri dsUri( uri );
 
@@ -1756,7 +1756,7 @@ QGISEXTERN void *selectWidget( QWidget *parent, Qt::WindowFlags fl, QgsProviderR
 
 QGISEXTERN QgsDataItem *dataItem( QString path, QgsDataItem *parentItem )
 {
-  Q_UNUSED( path );
+  Q_UNUSED( path )
   QgsDebugMsg( QStringLiteral( "DB2: Browser Panel; data item detected." ) );
   return new QgsDb2RootItem( parentItem, PROVIDER_KEY, QStringLiteral( "DB2:" ) );
 }
@@ -1769,12 +1769,11 @@ QGISEXTERN QgsVectorLayerExporter::ExportError createEmptyLayer(
   const QgsCoordinateReferenceSystem &srs,
   bool overwrite,
   QMap<int, int> *oldToNewAttrIdxMap,
-  QString *errorMessage,
-  const QMap<QString, QVariant> *options )
+  QString *errorMessage )
 {
   return QgsDb2Provider::createEmptyLayer(
            uri, fields, wkbType, srs, overwrite,
-           oldToNewAttrIdxMap, errorMessage, options
+           oldToNewAttrIdxMap, errorMessage
          );
 }
 

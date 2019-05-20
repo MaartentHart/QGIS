@@ -25,13 +25,13 @@
 #include "qgis_gui.h"
 #include "qgis_sip.h"
 #include "qgsdistancearea.h"
-#include "qgsexpressioncontextgenerator.h"
 #include "qgsexpressioncontext.h"
 #include "qgsfieldproxymodel.h"
 
 
 class QgsMapLayer;
 class QgsVectorLayer;
+class QgsExpressionContextGenerator;
 
 
 /**
@@ -79,14 +79,14 @@ class GUI_EXPORT QgsFieldExpressionWidget : public QWidget
     /**
      * Sets whether an optional empty field ("not set") option is shown in the combo box.
      * \see allowEmptyFieldName()
-     * \since QGIS 3.6
+     * \since QGIS 3.4.6
      */
     void setAllowEmptyFieldName( bool allowEmpty );
 
     /**
      * Returns TRUE if the combo box allows the empty field ("not set") choice.
      * \see setAllowEmptyFieldName()
-     * \since QGIS 3.6
+     * \since QGIS 3.4.6
      */
     bool allowEmptyFieldName() const;
 

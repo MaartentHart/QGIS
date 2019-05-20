@@ -100,6 +100,14 @@ size_t MDAL::toSizeT( const std::string &str )
   return static_cast< size_t >( i );
 }
 
+size_t MDAL::toSizeT( const char &str )
+{
+  int i = atoi( &str );
+  if ( i < 0 ) // consistent with atoi return
+    i = 0;
+  return static_cast< size_t >( i );
+}
+
 double MDAL::toDouble( const std::string &str )
 {
   return atof( str.c_str() );
@@ -315,14 +323,16 @@ bool MDAL::equals( double val1, double val2, double eps )
 
 double MDAL::safeValue( double val, double nodata, double eps )
 {
-  if ( equals( val, nodata, eps ) )
-  {
-    return std::numeric_limits<double>::quiet_NaN();
-  }
-  else
-  {
+  if ( std::isnan( val ) )
     return val;
-  }
+
+  if ( std::isnan( nodata ) )
+    return val;
+
+  if ( equals( val, nodata, eps ) )
+    return std::numeric_limits<double>::quiet_NaN();
+
+  return val;
 }
 
 double MDAL::parseTimeUnits( const std::string &units )
@@ -445,6 +455,9 @@ MDAL::Statistics MDAL::calculateStatistics( std::shared_ptr<Dataset> dataset )
     {
       valsRead = dataset->scalarData( i, bufLen, buffer.data() );
     }
+    if ( valsRead == 0 )
+      return ret;
+
     MDAL::Statistics dsStats = _calculateStatistics( buffer, valsRead, isVector );
     combineStatistics( ret, dsStats );
     i += valsRead;
@@ -496,4 +509,86 @@ void MDAL::addBedElevationDatasetGroup( MDAL::Mesh *mesh, const Vertices &vertic
   group->datasets.push_back( dataset );
   group->setStatistics( MDAL::calculateStatistics( group ) );
   mesh->datasetGroups.push_back( group );
+}
+
+void MDAL::addFaceScalarDatasetGroup( MDAL::Mesh *mesh,
+                                      const std::vector<double> &values,
+                                      const std::string &name )
+{
+  if ( !mesh )
+    return;
+
+  if ( values.empty() )
+    return;
+
+  if ( mesh->facesCount() == 0 )
+    return;
+
+  assert( values.size() ==  mesh->facesCount() );
+
+  std::shared_ptr<DatasetGroup> group = std::make_shared< DatasetGroup >(
+                                          mesh->driverName(),
+                                          mesh,
+                                          mesh->uri(),
+                                          name
+                                        );
+  group->setIsOnVertices( false );
+  group->setIsScalar( true );
+
+  std::shared_ptr<MDAL::MemoryDataset> dataset = std::make_shared< MemoryDataset >( group.get() );
+  dataset->setTime( 0.0 );
+  memcpy( dataset->values(), values.data(), sizeof( double )*values.size() );
+  dataset->setStatistics( MDAL::calculateStatistics( dataset ) );
+  group->datasets.push_back( dataset );
+  group->setStatistics( MDAL::calculateStatistics( group ) );
+  mesh->datasetGroups.push_back( group );
+}
+
+void MDAL::activateFaces( MDAL::MemoryMesh *mesh, std::shared_ptr<MemoryDataset> dataset )
+{
+  // only for data on vertices
+  if ( !dataset->group()->isOnVertices() )
+    return;
+
+  bool isScalar = dataset->group()->isScalar();
+
+  // Activate only Faces that do all Vertex's outputs with some data
+  int *active = dataset->active();
+  const double *values = dataset->constValues();
+  const size_t nFaces = mesh->facesCount();
+
+  for ( unsigned int idx = 0; idx < nFaces; ++idx )
+  {
+    Face elem = mesh->faces.at( idx );
+    for ( size_t i = 0; i < elem.size(); ++i )
+    {
+      const size_t vertexIndex = elem[i];
+      if ( isScalar )
+      {
+        double val = values[vertexIndex];
+        if ( std::isnan( val ) )
+        {
+          active[idx] = 0; //NOT ACTIVE
+          break;
+        }
+      }
+      else
+      {
+        double x = values[2 * vertexIndex];
+        double y = values[2 * vertexIndex + 1];
+        if ( std::isnan( x ) || std::isnan( y ) )
+        {
+          active[idx] = 0; //NOT ACTIVE
+          break;
+        }
+      }
+    }
+  }
+}
+
+bool MDAL::isNativeLittleEndian()
+{
+  // https://stackoverflow.com/a/4181991/2838364
+  int n = 1;
+  return ( *( char * )&n == 1 );
 }

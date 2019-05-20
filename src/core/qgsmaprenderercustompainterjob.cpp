@@ -220,12 +220,12 @@ void QgsMapRendererCustomPainterJob::staticRender( QgsMapRendererCustomPainterJo
   }
   catch ( QgsException &e )
   {
-    Q_UNUSED( e );
+    Q_UNUSED( e )
     QgsDebugMsg( "Caught unhandled QgsException: " + e.what() );
   }
   catch ( std::exception &e )
   {
-    Q_UNUSED( e );
+    Q_UNUSED( e )
     QgsDebugMsg( "Caught unhandled std::exception: " + QString::fromLatin1( e.what() ) );
   }
   catch ( ... )
@@ -340,7 +340,7 @@ void QgsMapRendererJob::drawLabeling( QgsRenderContext &renderContext, QgsLabeli
 
 void QgsMapRendererJob::drawLabeling( const QgsMapSettings &settings, QgsRenderContext &renderContext, QgsLabelingEngine *labelingEngine2, QPainter *painter )
 {
-  Q_UNUSED( settings );
+  Q_UNUSED( settings )
 
   drawLabeling( renderContext, labelingEngine2, painter );
 }
@@ -349,7 +349,7 @@ bool QgsMapRendererJob::needTemporaryImage( QgsMapLayer *ml )
 {
   switch ( ml->type() )
   {
-    case QgsMapLayer::VectorLayer:
+    case QgsMapLayerType::VectorLayer:
     {
       QgsVectorLayer *vl = qobject_cast<QgsVectorLayer *>( ml );
       if ( vl->renderer() && vl->renderer()->forceRasterRender() )
@@ -367,7 +367,7 @@ bool QgsMapRendererJob::needTemporaryImage( QgsMapLayer *ml )
       }
       break;
     }
-    case QgsMapLayer::RasterLayer:
+    case QgsMapLayerType::RasterLayer:
     {
       // preview of intermediate raster rendering results requires a temporary output image
       if ( mSettings.testFlag( QgsMapSettings::RenderPartialOutput ) )
@@ -375,8 +375,8 @@ bool QgsMapRendererJob::needTemporaryImage( QgsMapLayer *ml )
       break;
     }
 
-    case QgsMapLayer::MeshLayer:
-    case QgsMapLayer::PluginLayer:
+    case QgsMapLayerType::MeshLayer:
+    case QgsMapLayerType::PluginLayer:
       break;
   }
 

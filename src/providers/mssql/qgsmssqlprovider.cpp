@@ -425,7 +425,8 @@ void QgsMssqlProvider::loadFields()
         mFidColName = query.value( 3 ).toString();
         return;
       }
-      Q_FOREACH ( const QString &pk, pkCandidates )
+      const auto constPkCandidates = pkCandidates;
+      for ( const QString &pk : constPkCandidates )
       {
         query.clear();
         query.setForwardOnly( true );
@@ -1703,7 +1704,7 @@ QgsVectorLayerExporter::ExportError QgsMssqlProvider::createEmptyLayer( const QS
     QString *errorMessage,
     const QMap<QString, QVariant> *options )
 {
-  Q_UNUSED( options );
+  Q_UNUSED( options )
 
   // populate members from the uri structure
   QgsDataSourceUri dsUri( uri );
@@ -1802,7 +1803,7 @@ QgsVectorLayerExporter::ExportError QgsMssqlProvider::createEmptyLayer( const QS
   long srid = 0;
   if ( srs.isValid() )
   {
-    srid = srs.srsid();
+    srid = srs.postgisSrid();
     QString auth_srid = QStringLiteral( "null" );
     QString auth_name = QStringLiteral( "null" );
     QStringList sl = srs.authid().split( ':' );
@@ -1812,7 +1813,7 @@ QgsVectorLayerExporter::ExportError QgsMssqlProvider::createEmptyLayer( const QS
       auth_srid = sl[1];
     }
     sql = QStringLiteral( "IF NOT EXISTS (SELECT * FROM spatial_ref_sys WHERE srid=%1) INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) VALUES (%1, %2, %3, '%4', '%5')" )
-          .arg( srs.srsid() )
+          .arg( srid )
           .arg( auth_name,
                 auth_srid,
                 srs.toWkt(),
@@ -2018,7 +2019,7 @@ QGISEXTERN int dataCapabilities()
 
 QGISEXTERN QgsDataItem *dataItem( QString path, QgsDataItem *parentItem )
 {
-  Q_UNUSED( path );
+  Q_UNUSED( path )
   return new QgsMssqlRootItem( parentItem, QStringLiteral( "MSSQL" ), QStringLiteral( "mssql:" ) );
 }
 

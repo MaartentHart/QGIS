@@ -224,7 +224,7 @@ class CORE_EXPORT QgsDataItem : public QObject
      */
     Q_DECL_DEPRECATED virtual bool setCrs( const QgsCoordinateReferenceSystem &crs ) SIP_DEPRECATED
     {
-      Q_UNUSED( crs );
+      Q_UNUSED( crs )
       return false;
     }
 
@@ -467,8 +467,8 @@ class CORE_EXPORT QgsLayerItem : public QgsDataItem
 
     // --- New virtual methods for layer item derived classes ---
 
-    //! Returns QgsMapLayer::LayerType
-    QgsMapLayer::LayerType mapLayerType() const;
+    //! Returns QgsMapLayerType
+    QgsMapLayerType mapLayerType() const;
 
     /**
      * Returns the layer item type corresponding to a QgsMapLayer \a layer.

@@ -20,7 +20,6 @@ class NetCDFFile
 
     int handle() const;
     void openFile( const std::string &fileName );
-    bool hasVariable( const std::string &name ) const;
 
     std::vector<int> readIntArr( const std::string &name, size_t dim ) const;
     std::vector<double> readDoubleArr( const std::string &name, size_t dim ) const;
@@ -29,12 +28,19 @@ class NetCDFFile
 
     int getAttrInt( const std::string &name, const std::string &attr_name ) const;
     double getAttrDouble( int varid, const std::string &attr_name ) const;
+    /**
+     * Get string attribute
+     * \param name name of the variable
+     * \param attr_name name of the attribute of the variable
+     * \returns empty string if attribute is missing, else attribute value
+     */
     std::string getAttrStr( const std::string &name, const std::string &attr_name ) const;
-    std::string getAttrStr( const std::string &name, int varid ) const;
+    std::string getAttrStr( const std::string &attr_name, int varid ) const;
     double getFillValue( int varid ) const;
     int getVarId( const std::string &name );
     void getDimension( const std::string &name, size_t *val, int *ncid_val ) const;
-    void getDimensionOptional( const std::string &name, size_t *val, int *ncid_val ) const;
+    bool hasDimension( const std::string &name ) const;
+
   private:
     int mNcid; // C handle to the file
 };

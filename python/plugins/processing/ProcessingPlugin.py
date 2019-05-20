@@ -21,10 +21,6 @@ __author__ = 'Victor Olaya'
 __date__ = 'August 2012'
 __copyright__ = '(C) 2012, Victor Olaya'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 import shutil
 import os
 import sys
@@ -36,7 +32,7 @@ from qgis.core import (QgsApplication,
                        QgsDataItemProvider,
                        QgsDataProvider,
                        QgsDataItem,
-                       QgsMapLayer,
+                       QgsMapLayerType,
                        QgsMimeDataUtils)
 from qgis.gui import (QgsOptionsWidgetFactory,
                       QgsCustomDropHandler)
@@ -289,7 +285,7 @@ class ProcessingPlugin:
 
         old_enabled_state = self.editInPlaceAction.isEnabled()
 
-        new_enabled_state = layer is not None and layer.type() == QgsMapLayer.VectorLayer
+        new_enabled_state = layer is not None and layer.type() == QgsMapLayerType.VectorLayer
         self.editInPlaceAction.setEnabled(new_enabled_state)
 
         if new_enabled_state != old_enabled_state:

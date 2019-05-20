@@ -244,6 +244,7 @@ SET(QGIS_APP_SRCS
   mesh/qgsmeshrendereractivedatasetwidget.cpp
   mesh/qgsmeshdatasetgrouptreeview.cpp
   mesh/qgsmeshcalculatordialog.cpp
+  mesh/qgsmeshtimeformatdialog.cpp
 )
 
 SET (QGIS_APP_MOC_HDRS
@@ -470,6 +471,7 @@ SET (QGIS_APP_MOC_HDRS
   mesh/qgsmeshrendereractivedatasetwidget.h
   mesh/qgsmeshdatasetgrouptreeview.h
   mesh/qgsmeshcalculatordialog.h
+  mesh/qgsmeshtimeformatdialog.h
 )
 
 
@@ -579,10 +581,6 @@ IF (POSTGRES_FOUND)
   ENDIF(HAVE_PGCONFIG)
 ENDIF (POSTGRES_FOUND)
 
-IF (PROJ_HAS_INFO)
-  ADD_DEFINITIONS(-DPROJ_HAS_INFO)
-ENDIF (PROJ_HAS_INFO)
-
 # Test data dir for QgsAppScreenShots
 ADD_DEFINITIONS(-DTEST_DATA_DIR="${TEST_DATA_DIR}")
 
@@ -660,6 +658,7 @@ ENDIF(MSVC)
 INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/external/libdxfrw
   ${CMAKE_SOURCE_DIR}/external/nmea
+  ${CMAKE_SOURCE_DIR}/external
 
   ${CMAKE_SOURCE_DIR}/src/app
   ${CMAKE_SOURCE_DIR}/src/app/decorations
@@ -829,6 +828,8 @@ TARGET_LINK_LIBRARIES(qgis_app
   qgis_native
   libdxfrw
 )
+
+TARGET_COMPILE_DEFINITIONS(qgis_app PRIVATE "-DQT_NO_FOREACH")
 
 IF(ENABLE_MODELTEST)
   TARGET_LINK_LIBRARIES(qgis_app ${Qt5Test_LIBRARIES})

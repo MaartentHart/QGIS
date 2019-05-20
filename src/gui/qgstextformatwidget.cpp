@@ -111,7 +111,8 @@ void QgsTextFormatWidget::initWidget()
   mPreviewScaleComboBox->setShowCurrentScaleButton( true );
   connect( mPreviewScaleComboBox, &QgsScaleWidget::scaleChanged, this, &QgsTextFormatWidget::previewScaleChanged );
 
-  Q_FOREACH ( QgsUnitSelectionWidget *unitWidget, findChildren<QgsUnitSelectionWidget *>() )
+  const auto unitWidgets = findChildren<QgsUnitSelectionWidget *>();
+  for ( QgsUnitSelectionWidget *unitWidget : unitWidgets )
   {
     unitWidget->setMapCanvas( mMapCanvas );
   }
@@ -259,15 +260,13 @@ void QgsTextFormatWidget::initWidget()
 
   // Global settings group for groupboxes' saved/restored collapsed state
   // maintains state across different dialogs
-  Q_FOREACH ( QgsCollapsibleGroupBox *grpbox, findChildren<QgsCollapsibleGroupBox *>() )
+  const auto groupBoxes = findChildren<QgsCollapsibleGroupBox *>();
+  for ( QgsCollapsibleGroupBox *grpbox : groupBoxes )
   {
     grpbox->setSettingGroup( QStringLiteral( "mAdvLabelingDlg" ) );
   }
 
-  connect( groupBox_mPreview,
-           &QgsCollapsibleGroupBoxBasic::collapsedStateChanged,
-           this,
-           &QgsTextFormatWidget::collapseSample );
+  connect( groupBox_mPreview, &QgsCollapsibleGroupBoxBasic::collapsedStateChanged, this, &QgsTextFormatWidget::collapseSample );
 
   // get rid of annoying outer focus rect on Mac
   mLabelingOptionsListWidget->setAttribute( Qt::WA_MacShowFocusRect, false );
@@ -303,7 +302,6 @@ void QgsTextFormatWidget::initWidget()
   mBackgroundEffectWidget->setPaintEffect( mBackgroundEffect.get() );
 
   setDockMode( false );
-
 
   QList<QWidget *> widgets;
   widgets << btnBufferColor
@@ -517,10 +515,17 @@ void QgsTextFormatWidget::initWidget()
           << radPolygonPerimeterCurved
           << radPredefinedOrder
           << mFieldExpressionWidget
-          << mCheckBoxSubstituteText;
+          << mCheckBoxSubstituteText
+          << mGeometryGeneratorGroupBox
+          << mGeometryGenerator
+          << mGeometryGeneratorType;
   connectValueChanged( widgets, SLOT( updatePreview() ) );
 
   connect( mQuadrantBtnGrp, static_cast<void ( QButtonGroup::* )( int )>( &QButtonGroup::buttonClicked ), this, &QgsTextFormatWidget::updatePreview );
+
+  mGeometryGeneratorType->addItem( QgsApplication::getThemeIcon( QStringLiteral( "/mIconPolygonLayer.svg" ) ), tr( "Polygon / MultiPolygon" ), QgsWkbTypes::GeometryType::PolygonGeometry );
+  mGeometryGeneratorType->addItem( QgsApplication::getThemeIcon( QStringLiteral( "/mIconLineLayer.svg" ) ), tr( "LineString / MultiLineString" ), QgsWkbTypes::GeometryType::LineGeometry );
+  mGeometryGeneratorType->addItem( QgsApplication::getThemeIcon( QStringLiteral( "/mIconPointLayer.svg" ) ), tr( "Point / MultiPoint" ), QgsWkbTypes::GeometryType::PointGeometry );
 
   // set correct initial tab to match displayed setting page
   whileBlocking( mOptionsTab )->setCurrentIndex( mLabelStackedWidget->currentIndex() );
@@ -563,7 +568,8 @@ void QgsTextFormatWidget::setWidgetMode( QgsTextFormatWidget::Mode mode )
 
 void QgsTextFormatWidget::toggleDDButtons( bool visible )
 {
-  Q_FOREACH ( QgsPropertyOverrideButton *button, findChildren< QgsPropertyOverrideButton * >() )
+  const auto buttons = findChildren< QgsPropertyOverrideButton * >();
+  for ( QgsPropertyOverrideButton *button : buttons )
   {
     button->setVisible( visible );
   }
@@ -587,7 +593,8 @@ void QgsTextFormatWidget::setDockMode( bool enabled )
 
 void QgsTextFormatWidget::connectValueChanged( const QList<QWidget *> &widgets, const char *slot )
 {
-  Q_FOREACH ( QWidget *widget, widgets )
+  const auto constWidgets = widgets;
+  for ( QWidget *widget : constWidgets )
   {
     if ( QgsPropertyOverrideButton *w = qobject_cast<QgsPropertyOverrideButton *>( widget ) )
     {
@@ -640,6 +647,14 @@ void QgsTextFormatWidget::connectValueChanged( const QList<QWidget *> &widgets, 
     else if ( QSlider *w = qobject_cast<QSlider *>( widget ) )
     {
       connect( w, SIGNAL( valueChanged( int ) ), this, slot );
+    }
+    else if ( QGroupBox *w = qobject_cast<QGroupBox *>( widget ) )
+    {
+      connect( w, SIGNAL( toggled( bool ) ), this, slot );
+    }
+    else if ( QgsCodeEditorExpression *w = qobject_cast<QgsCodeEditorExpression *>( widget ) )
+    {
+      connect( w, SIGNAL( textChanged() ), this, slot );
     }
     else
     {
@@ -1065,7 +1080,8 @@ void QgsTextFormatWidget::populateFontStyleComboBox()
 {
   mFontStyleComboBox->clear();
   QStringList styles = mFontDB.styles( mRefFont.family() );
-  Q_FOREACH ( const QString &style, styles )
+  const auto constStyles = styles;
+  for ( const QString &style : constStyles )
   {
     mFontStyleComboBox->addItem( style );
   }
@@ -1095,7 +1111,7 @@ void QgsTextFormatWidget::mFontSizeSpinBox_valueChanged( double d )
 
 void QgsTextFormatWidget::mFontCapitalsComboBox_currentIndexChanged( int index )
 {
-  int capitalsindex = mFontCapitalsComboBox->itemData( index ).toUInt();
+  int capitalsindex = mFontCapitalsComboBox->itemData( index ).toInt();
   mRefFont.setCapitalization( ( QFont::Capitalization ) capitalsindex );
   updateFont( mRefFont );
 }
@@ -1395,7 +1411,9 @@ void QgsTextFormatWidget::mPreviewBackgroundBtn_colorChanged( const QColor &colo
 void QgsTextFormatWidget::mDirectSymbLeftToolBtn_clicked()
 {
   bool gotChar = false;
-  QChar dirSymb = mCharDlg->selectCharacter( &gotChar, mRefFont, mFontDB.styleString( mRefFont ) );
+
+  const QChar initial = !mDirectSymbLeftLineEdit->text().isEmpty() ? mDirectSymbLeftLineEdit->text().at( 0 ) : QChar();
+  QChar dirSymb = mCharDlg->selectCharacter( &gotChar, mRefFont, mFontDB.styleString( mRefFont ), initial );
 
   if ( !gotChar )
     return;
@@ -1407,7 +1425,8 @@ void QgsTextFormatWidget::mDirectSymbLeftToolBtn_clicked()
 void QgsTextFormatWidget::mDirectSymbRightToolBtn_clicked()
 {
   bool gotChar = false;
-  QChar dirSymb = mCharDlg->selectCharacter( &gotChar, mRefFont, mFontDB.styleString( mRefFont ) );
+  const QChar initial = !mDirectSymbRightLineEdit->text().isEmpty() ? mDirectSymbRightLineEdit->text().at( 0 ) : QChar();
+  QChar dirSymb = mCharDlg->selectCharacter( &gotChar, mRefFont, mFontDB.styleString( mRefFont ), initial );
 
   if ( !gotChar )
     return;

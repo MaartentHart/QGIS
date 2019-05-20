@@ -26,7 +26,6 @@
 #include "qgsmaplayerproxymodel.h"
 #include "qgswkbtypes.h"
 #include "qgsfeatureiterator.h"
-#include "qgsmeshrendereractivedatasetwidget.h"
 
 #include "cpl_string.h"
 #include "gdal.h"
@@ -203,7 +202,7 @@ std::unique_ptr<QgsMeshCalculator> QgsMeshCalculatorDialog::calculator() const
 
 void QgsMeshCalculatorDialog::toggleExtendMask( int state )
 {
-  Q_UNUSED( state );
+  Q_UNUSED( state )
   if ( useMaskCb->checkState() == Qt::Checked )
   {
     extendBox->setVisible( false );
@@ -248,7 +247,7 @@ void QgsMeshCalculatorDialog::mExpressionTextEdit_textChanged()
   }
   else
   {
-    mExpressionValidLabel->setText( tr( "Expression invalid" ) );
+    mExpressionValidLabel->setText( tr( "Expression invalid or datasets type not supported" ) );
   }
   mButtonBox->button( QDialogButtonBox::Ok )->setEnabled( false );
 }
@@ -527,8 +526,7 @@ void QgsMeshCalculatorDialog::repopulateTimeCombos()
     {
       const QgsMeshDatasetMetadata meta = dp->datasetMetadata( QgsMeshDatasetIndex( groupIndex, datasetIndex ) );
       const double time = meta.time();
-
-      const QString timestr =  QgsMeshRendererActiveDatasetWidget::formatTime( time ); // the format is "HH:mm:ss"
+      const QString timestr = layer->formatTime( time );
 
       times[timestr] = time;
     }

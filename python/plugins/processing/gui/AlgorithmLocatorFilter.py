@@ -21,10 +21,6 @@ __author__ = 'Nyall Dawson'
 __date__ = 'May 2017'
 __copyright__ = '(C) 2017, Nyall Dawson'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 
 from qgis.core import (QgsApplication,
                        QgsProcessingAlgorithm,
@@ -33,7 +29,7 @@ from qgis.core import (QgsApplication,
                        QgsLocatorResult,
                        QgsProcessing,
                        QgsWkbTypes,
-                       QgsMapLayer,
+                       QgsMapLayerType,
                        QgsFields)
 from processing.gui.MessageBarProgress import MessageBarProgress
 from processing.gui.MessageDialog import MessageDialog
@@ -141,7 +137,7 @@ class InPlaceAlgorithmLocatorFilter(QgsLocatorFilter):
         # collect results in main thread, since this method is inexpensive and
         # accessing the processing registry/current layer is not thread safe
 
-        if iface.activeLayer() is None or iface.activeLayer().type() != QgsMapLayer.VectorLayer:
+        if iface.activeLayer() is None or iface.activeLayer().type() != QgsMapLayerType.VectorLayer:
             return
 
         for a in QgsApplication.processingRegistry().algorithms():

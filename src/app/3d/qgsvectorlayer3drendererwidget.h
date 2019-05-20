@@ -42,7 +42,7 @@ class QgsSingleSymbol3DRendererWidget : public QWidget
     //! no transfer of ownership
     void setLayer( QgsVectorLayer *layer );
 
-    //! cloned symbol or null
+    //! Returns the cloned symbol or NULLPTR.
     QgsAbstract3DSymbol *symbol();
 
   signals:
@@ -65,6 +65,9 @@ class QgsVectorLayer3DRendererWidget : public QgsMapLayerConfigWidget
     void setLayer( QgsVectorLayer *layer );
 
     void setDockMode( bool dockMode ) override;
+
+    //! Only modifies 3D renderer so we do not want layer repaint (which would trigger unnecessary terrain map update)
+    bool shouldTriggerLayerRepaint() const override { return false; }
 
   public slots:
     void apply() override;

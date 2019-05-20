@@ -173,6 +173,22 @@ namespace QgsGuiUtils
    * \since QGIS 3.6
    */
   int GUI_EXPORT scaleIconSize( int standardSize );
+
+  /**
+   * Returns the user-preferred size of a window's toolbar icons.
+   * \param dockableToolbar If set to true, the icon size will be returned for dockable window panel's toolbars.
+   * \returns a QSize object representing an icon's width and height.
+   * \since QGIS 3.8
+   */
+  QSize GUI_EXPORT iconSize( bool dockableToolbar = false );
+
+  /**
+   * Returns dockable panel toolbar icon width based on the provided window toolbar width.
+   * \param size Icon size from which the output size will be derived from.
+   * \returns a QSize object representing an icon's width and height.
+   * \since QGIS 3.8
+   */
+  QSize GUI_EXPORT panelIconSize( QSize size );
 }
 
 /**
@@ -181,6 +197,7 @@ namespace QgsGuiUtils
  * When the object is deleted, the cursor override is removed.
  *
  * \ingroup gui
+ * \see QgsTemporaryCursorRestoreOverride
  * \since QGIS 3.2
  */
 class GUI_EXPORT QgsTemporaryCursorOverride
@@ -203,6 +220,38 @@ class GUI_EXPORT QgsTemporaryCursorOverride
   private:
 
     bool mHasOverride = true;
+
+};
+
+/**
+ * Temporarily removes all cursor overrides for the QApplication for the lifetime of the object.
+ *
+ * When the object is deleted, all stacked cursor overrides are restored.
+ *
+ * \ingroup gui
+ * \see QgsTemporaryCursorOverride
+ * \since QGIS 3.8
+ */
+class GUI_EXPORT QgsTemporaryCursorRestoreOverride
+{
+  public:
+
+    /**
+     * Constructor for QgsTemporaryCursorRestoreOverride. Removes all application override
+     * cursors.
+     */
+    QgsTemporaryCursorRestoreOverride();
+
+    ~QgsTemporaryCursorRestoreOverride();
+
+    /**
+     * Restores the cursor override early (i.e. before this object is destroyed).
+     */
+    void restore();
+
+  private:
+
+    std::vector< QCursor > mCursors;
 
 };
 

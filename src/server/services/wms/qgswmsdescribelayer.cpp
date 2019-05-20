@@ -40,7 +40,7 @@ namespace QgsWms
   QDomDocument describeLayer( QgsServerInterface *serverIface, const QgsProject *project, const QString &version,
                               const QgsServerRequest &request )
   {
-    Q_UNUSED( version );
+    Q_UNUSED( version )
 
     QgsServerRequest::Parameters parameters = request.parameters();
 
@@ -108,6 +108,8 @@ namespace QgsWms
     // access control
 #ifdef HAVE_SERVER_PYTHON_PLUGINS
     QgsAccessControl *accessControl = serverIface->accessControls();
+#else
+    ( void )serverIface;
 #endif
     // Use layer ids
     bool useLayerIds = QgsServerProjectUtils::wmsUseLayerIds( *project );
@@ -157,7 +159,7 @@ namespace QgsWms
       QDomElement nameNode = myDocument.createElement( QStringLiteral( "TypeName" ) );
       switch ( layer->type() )
       {
-        case QgsMapLayer::VectorLayer:
+        case QgsMapLayerType::VectorLayer:
         {
           typeNode.appendChild( myDocument.createTextNode( QStringLiteral( "wfs" ) ) );
 
@@ -172,7 +174,7 @@ namespace QgsWms
           nameNode.appendChild( typeNameNode );
           break;
         }
-        case QgsMapLayer::RasterLayer:
+        case QgsMapLayerType::RasterLayer:
         {
           typeNode.appendChild( myDocument.createTextNode( QStringLiteral( "wcs" ) ) );
 
@@ -188,8 +190,8 @@ namespace QgsWms
           break;
         }
 
-        case QgsMapLayer::MeshLayer:
-        case QgsMapLayer::PluginLayer:
+        case QgsMapLayerType::MeshLayer:
+        case QgsMapLayerType::PluginLayer:
           break;
       }
       layerNode.appendChild( typeNode );

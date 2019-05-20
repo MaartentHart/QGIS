@@ -13,10 +13,11 @@
  *                                                                         *
  ***************************************************************************/
 
-import QtQuick 2.11
-import QtQuick.Controls 2.4
+import QtQuick 2.9
+import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.1
 import QtQuick.Controls 1.4 as Controls1
+import QtGraphicalEffects 1.0
 import QgsQuick 0.1 as QgsQuick
 
 /**
@@ -26,6 +27,7 @@ import QgsQuick 0.1 as QgsQuick
  */
 Item {
     signal valueChanged(var value, bool isNull)
+    property real iconSize:  fieldItem.height * 0.75
 
     id: fieldItem
     enabled: !readOnly
@@ -46,21 +48,21 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.minimumHeight: customStyle.height
+            Layout.minimumHeight: customStyle.fields.height
 
             TextField {
                 id: label
 
                 anchors.fill: parent
                 verticalAlignment: Text.AlignVCenter
-                font.pixelSize: customStyle.fontPixelSize
+                font.pixelSize: customStyle.fields.fontPixelSize
                 padding: 0
                 background: Rectangle {
-                    radius: customStyle.cornerRadius
+                    radius: customStyle.fields.cornerRadius
 
-                    border.color: label.activeFocus ? customStyle.activeColor : customStyle.normalColor
+                    border.color: label.activeFocus ? customStyle.fields.activeColor : customStyle.fields.normalColor
                     border.width: label.activeFocus ? 2 : 1
-                    color: customStyle.backgroundColor
+                    color: customStyle.fields.backgroundColor
                 }
 
                 inputMethodHints: Qt.ImhDigitsOnly
@@ -93,7 +95,7 @@ Item {
                       }
             }
 
-                color: main.currentValue === undefined ? 'transparent' : customStyle.fontColor
+                color: main.currentValue === undefined ? 'transparent' : customStyle.fields.fontColor
 
                 MouseArea {
                     enabled: config['calendar_popup']
@@ -136,6 +138,31 @@ Item {
                         label.cursorPosition = cur
                     }
                 }
+            }
+
+            Image {
+                id: todayBtn
+                height: fieldItem.iconSize
+                sourceSize.height: fieldItem.iconSize
+                autoTransform: true
+                fillMode: Image.PreserveAspectFit
+                source: customStyle.icons.today
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: fieldItem.enabled
+                anchors.rightMargin: fieldItem.anchors.rightMargin
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: main.currentValue = new Date()
+                }
+            }
+
+            ColorOverlay {
+                anchors.fill: todayBtn
+                source: todayBtn
+                color: customStyle.fields.fontColor
+                visible: todayBtn.visible
             }
         }
 
@@ -184,11 +211,11 @@ Item {
             if (main.currentValue === undefined)
             {
                 label.text = qsTr('(no date)')
-                label.color = customStyle.fontColor
+                label.color = customStyle.fields.fontColor
             }
             else
             {
-                label.color = customStyle.fontColor
+                label.color = customStyle.fields.fontColor
                 label.text = new Date(value).toLocaleString(Qt.locale(), config['display_format'] )
             }
         }

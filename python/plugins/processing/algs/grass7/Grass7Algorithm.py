@@ -21,10 +21,6 @@ __author__ = 'Victor Olaya'
 __date__ = 'February 2015'
 __copyright__ = '(C) 2012-2015, Victor Olaya'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 import sys
 import os
 import re
@@ -36,7 +32,8 @@ from qgis.PyQt.QtCore import QCoreApplication, QUrl
 from qgis.core import (Qgis,
                        QgsRasterLayer,
                        QgsApplication,
-                       QgsMapLayer,
+                       QgsMapLayerType,
+                       QgsCoordinateReferenceSystem,
                        QgsProcessingUtils,
                        QgsProcessing,
                        QgsMessageLog,
@@ -64,7 +61,11 @@ from qgis.core import (Qgis,
                        QgsVectorLayer,
                        QgsProviderRegistry)
 from qgis.utils import iface
-from osgeo import ogr
+
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from osgeo import ogr
 
 from processing.core.ProcessingConfig import ProcessingConfig
 
@@ -122,6 +123,9 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
         self.outputType = None
         self.minArea = None
         self.alignToResolution = None
+
+        # destination Crs for combineLayerExtents, will be set from layer or mapSettings
+        self.destination_crs = QgsCoordinateReferenceSystem()
 
         # Load parameters from a description file
         self.defineCharacteristicsFromFile()
@@ -372,9 +376,9 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
                                                  self.GRASS_OUTPUT_TYPE_PARAMETER,
                                                  context)
         # GRASS align to resolution
-        self.alignToResolution = self.parameterAsBool(parameters,
-                                                      self.GRASS_REGION_ALIGN_TO_RESOLUTION,
-                                                      context)
+        self.alignToResolution = self.parameterAsBoolean(parameters,
+                                                         self.GRASS_REGION_ALIGN_TO_RESOLUTION,
+                                                         context)
 
     def processAlgorithm(self, original_parameters, context, feedback):
         if isWindows():
@@ -479,15 +483,15 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
                 for idx, layer in enumerate(layers):
                     layerName = '{}_{}'.format(paramName, idx)
                     # Add a raster layer
-                    if layer.type() == QgsMapLayer.RasterLayer:
+                    if layer.type() == QgsMapLayerType.RasterLayer:
                         self.loadRasterLayer(layerName, layer)
                     # Add a vector layer
-                    elif layer.type() == QgsMapLayer.VectorLayer:
+                    elif layer.type() == QgsMapLayerType.VectorLayer:
                         self.loadVectorLayer(layerName, layer, external=None, feedback=feedback)
 
-        self.postInputs()
+        self.postInputs(context)
 
-    def postInputs(self):
+    def postInputs(self, context):
         """
         After layer imports, we need to update some internal parameters
         """
@@ -496,7 +500,7 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
 
         # Build GRASS region
         if self.region.isEmpty():
-            self.region = QgsProcessingUtils.combineLayerExtents(self.inputLayers)
+            self.region = QgsProcessingUtils.combineLayerExtents(self.inputLayers, self.destination_crs, context)
         command = 'g.region n={} s={} e={} w={}'.format(
             self.region.yMaximum(), self.region.yMinimum(),
             self.region.xMaximum(), self.region.xMinimum()
@@ -569,7 +573,7 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
                 value = ','.join(values)
             # For booleans, we just add the parameter name
             elif isinstance(param, QgsProcessingParameterBoolean):
-                if self.parameterAsBool(parameters, paramName, context):
+                if self.parameterAsBoolean(parameters, paramName, context):
                     command += ' {}'.format(paramName)
             # For Extents, remove if the value is null
             elif isinstance(param, QgsProcessingParameterExtent):
@@ -914,7 +918,7 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
         outFormat = QgsVectorFileWriter.driverForExtension(os.path.splitext(fileName)[1]).replace(' ', '_')
         dsco = self.parameterAsString(parameters, self.GRASS_VECTOR_DSCO, context)
         lco = self.parameterAsString(parameters, self.GRASS_VECTOR_LCO, context)
-        exportnocat = self.parameterAsBool(parameters, self.GRASS_VECTOR_EXPORT_NOCAT, context)
+        exportnocat = self.parameterAsBoolean(parameters, self.GRASS_VECTOR_EXPORT_NOCAT, context)
         self.exportVectorLayer(grassName, fileName, layer, nocats, dataType, outFormat, dsco, lco, exportnocat)
 
     def exportVectorLayer(self, grassName, fileName, layer=None, nocats=False, dataType='auto',
@@ -997,6 +1001,7 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
         We creates a PROJ4 definition which is transmitted to Grass
         """
         if not Grass7Utils.projectionSet and iface:
+            self.destination_crs = iface.mapCanvas().mapSettings().destinationCrs()
             proj4 = iface.mapCanvas().mapSettings().destinationCrs().toProj4()
             command = 'g.proj -c proj4="{}"'.format(proj4)
             self.commands.append(command)
@@ -1009,6 +1014,7 @@ class Grass7Algorithm(QgsProcessingAlgorithm):
         """
         if not Grass7Utils.projectionSet:
             proj4 = str(layer.crs().toProj4())
+            self.destination_crs = layer.crs()
             command = 'g.proj -c proj4="{}"'.format(proj4)
             self.commands.append(command)
             Grass7Utils.projectionSet = True

@@ -21,10 +21,6 @@ __author__ = 'Alexander Bruy'
 __date__ = 'October 2013'
 __copyright__ = '(C) 2013, Alexander Bruy'
 
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = '$Format:%H$'
-
 import os
 import re
 import warnings
@@ -41,7 +37,7 @@ from qgis.core import (Qgis,
                        QgsProperty,
                        QgsProject,
                        QgsMessageLog,
-                       QgsMapLayer,
+                       QgsMapLayerType,
                        QgsProcessingOutputLayerDefinition)
 from qgis.gui import QgsEncodingFileDialog, QgsGui
 from qgis.utils import OverrideCursor, iface
@@ -88,7 +84,7 @@ class FieldsCalculatorDialog(BASE, WIDGET):
 
         self.cmbInputLayer.setFilters(QgsMapLayerProxyModel.VectorLayer)
         try:
-            if iface.activeLayer().type() == QgsMapLayer.VectorLayer:
+            if iface.activeLayer().type() == QgsMapLayerType.VectorLayer:
                 self.cmbInputLayer.setLayer(iface.activeLayer())
         except:
             pass

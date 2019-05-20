@@ -2905,7 +2905,7 @@ void QgsAuthManager::writeToConsole( const QString &message,
                                      const QString &tag,
                                      QgsAuthManager::MessageLevel level )
 {
-  Q_UNUSED( tag );
+  Q_UNUSED( tag )
 
   // only output WARNING and CRITICAL messages
   if ( level == QgsAuthManager::INFO )
@@ -3203,9 +3203,8 @@ bool QgsAuthManager::masterPasswordInput()
 
   if ( ! ok )
   {
-    QgsCredentials *creds = QgsCredentials::instance();
     pass.clear();
-    ok = creds->getMasterPassword( pass, masterPasswordHashInDatabase() );
+    ok = QgsCredentials::instance()->getMasterPassword( pass, masterPasswordHashInDatabase() );
   }
 
   if ( ok && !pass.isEmpty() && mMasterPass != pass )
@@ -3479,8 +3478,8 @@ bool QgsAuthManager::reencryptAuthenticationConfig( const QString &authcfg, cons
 bool QgsAuthManager::reencryptAllAuthenticationSettings( const QString &prevpass, const QString &prevciv )
 {
   // TODO: start remove (when function is actually used)
-  Q_UNUSED( prevpass );
-  Q_UNUSED( prevciv );
+  Q_UNUSED( prevpass )
+  Q_UNUSED( prevciv )
   return true;
   // end remove
 

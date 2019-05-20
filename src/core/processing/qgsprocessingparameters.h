@@ -228,6 +228,8 @@ class CORE_EXPORT QgsProcessingParameterDefinition
       sipType = sipType_QgsProcessingParameterNumber;
     else if ( sipCpp->type() == QgsProcessingParameterDistance::typeName() )
       sipType = sipType_QgsProcessingParameterDistance;
+    else if ( sipCpp->type() == QgsProcessingParameterScale::typeName() )
+      sipType = sipType_QgsProcessingParameterScale;
     else if ( sipCpp->type() == QgsProcessingParameterRange::typeName() )
       sipType = sipType_QgsProcessingParameterRange;
     else if ( sipCpp->type() == QgsProcessingParameterRasterLayer::typeName() )
@@ -513,6 +515,40 @@ class CORE_EXPORT QgsProcessingParameterDefinition
      */
     void setDynamicLayerParameterName( const QString &name ) { mDynamicLayerParameterName = name; }
 
+    /**
+     * Returns a list of additional expression context variables which are available for use when evaluating
+     * this parameter.
+     *
+     * The additional variables will be added to the variables exposed from the usual expression
+     * context available to the parameter. They can be used to expose variables which are ONLY available
+     * to this parameter.
+     *
+     * The returned list should contain the variable names only, without the usual "@" prefix.
+     *
+     * \see setAdditionalExpressionContextVariables()
+     * \since QGIS 3.8
+     */
+    QStringList additionalExpressionContextVariables() const { return mAdditionalExpressionVariables; }
+
+    /**
+     * Sets a list of additional expression context \a variables which are available for use when evaluating
+     * this parameter.
+     *
+     * The additional variables will be added to the variables exposed from the usual expression
+     * context available to the parameter. They can be used to expose variables which are ONLY available
+     * to this parameter.
+     *
+     * The \a variables list should contain the variable names only, without the usual "@" prefix.
+     *
+     * \note Specifying variables via this method is for metadata purposes only. It is the algorithm's responsibility
+     * to correctly set the value of these additional variables in all expression context used when evaluating the parameter,
+     * in whichever way is appropriate for that particular variable.
+     *
+     * \see additionalExpressionContextVariables()
+     * \since QGIS 3.8
+     */
+    void setAdditionalExpressionContextVariables( const QStringList &variables ) { mAdditionalExpressionVariables = variables; }
+
   protected:
 
     //! Parameter name
@@ -541,6 +577,9 @@ class CORE_EXPORT QgsProcessingParameterDefinition
 
     //! Linked vector layer parameter name for dynamic properties
     QString mDynamicLayerParameterName;
+
+    //! Additional expression context variables exposed for use by this parameter
+    QStringList mAdditionalExpressionVariables;
 
     // To allow access to mAlgorithm. We don't want a public setter for this!
     friend class QgsProcessingAlgorithm;
@@ -665,10 +704,23 @@ class CORE_EXPORT QgsProcessingParameters
     static bool parameterAsBool( const QgsProcessingParameterDefinition *definition, const QVariantMap &parameters, const QgsProcessingContext &context );
 
     /**
+     * Evaluates the parameter with matching \a definition to a static boolean value.
+     *
+     * \since QGIS 3.8
+     */
+    static bool parameterAsBoolean( const QgsProcessingParameterDefinition *definition, const QVariantMap &parameters, const QgsProcessingContext &context );
+
+    /**
      * Evaluates the parameter with matching \a definition and \a value to a static boolean value.
      * \since QGIS 3.4
      */
     static bool parameterAsBool( const QgsProcessingParameterDefinition *definition, const QVariant &value, const QgsProcessingContext &context );
+
+    /**
+     * Evaluates the parameter with matching \a definition and \a value to a static boolean value.
+     * \since QGIS 3.8
+     */
+    static bool parameterAsBoolean( const QgsProcessingParameterDefinition *definition, const QVariant &value, const QgsProcessingContext &context );
 
     /**
      * Evaluates the parameter with matching \a definition to a feature sink.
@@ -933,6 +985,14 @@ class CORE_EXPORT QgsProcessingParameters
      * \see parameterAsPoint()
      */
     static QgsCoordinateReferenceSystem parameterAsPointCrs( const QgsProcessingParameterDefinition *definition, const QVariantMap &parameters, QgsProcessingContext &context );
+
+    /**
+     * Returns the coordinate reference system associated with an point parameter value.
+     *
+     * \see parameterAsPoint()
+     * \since QGIS 3.8
+     */
+    static QgsCoordinateReferenceSystem parameterAsPointCrs( const QgsProcessingParameterDefinition *definition, const QVariant &value, QgsProcessingContext &context );
 
     /**
      * Evaluates the parameter with matching \a definition to a file/folder name.
@@ -1629,6 +1689,44 @@ class CORE_EXPORT QgsProcessingParameterDistance : public QgsProcessingParameter
 };
 
 /**
+ * \class QgsProcessingParameterScale
+ * \ingroup core
+ * A double numeric parameter for map scale values.
+ *
+ * QgsProcessingParameterScale should be evaluated by calling QgsProcessingAlgorithm::parameterAsDouble(),
+ * which will return a numeric value representing the scale denominator.
+ *
+ * \since QGIS 3.8
+ */
+class CORE_EXPORT QgsProcessingParameterScale : public QgsProcessingParameterNumber
+{
+  public:
+
+    /**
+     * Constructor for QgsProcessingParameterScale.
+     */
+    explicit QgsProcessingParameterScale( const QString &name, const QString &description = QString(),
+                                          const QVariant &defaultValue = QVariant(),
+                                          bool optional = false );
+
+    /**
+     * Returns the type name for the parameter class.
+     */
+    static QString typeName() { return QStringLiteral( "scale" ); }
+
+    QgsProcessingParameterScale *clone() const override SIP_FACTORY;
+
+    QString type() const override;
+    QString asPythonString( QgsProcessing::PythonOutputType outputType = QgsProcessing::PythonQgsProcessingAlgorithmSubclass ) const override;
+
+    /**
+     * Creates a new parameter using the definition from a script code.
+     */
+    static QgsProcessingParameterScale *fromScriptCode( const QString &name, const QString &description, bool isOptional, const QString &definition ) SIP_FACTORY;
+
+};
+
+/**
  * \class QgsProcessingParameterRange
  * \ingroup core
  * A numeric range parameter for processing algorithms.
@@ -1838,7 +1936,7 @@ class CORE_EXPORT QgsProcessingParameterString : public QgsProcessingParameterDe
 /**
  * \class QgsProcessingParameterAuthConfig
  * \ingroup core
- * A string parameter for authentication configuration configuration ID values.
+ * A string parameter for authentication configuration ID values.
  *
  * This parameter allows for users to select from available authentication configurations,
  * or create new authentication configurations as required.

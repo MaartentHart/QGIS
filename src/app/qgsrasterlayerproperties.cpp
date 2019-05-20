@@ -206,8 +206,9 @@ QgsRasterLayerProperties::QgsRasterLayerProperties( QgsMapLayer *lyr, QgsMapCanv
   {
     // initialize resampling methods
     cboResamplingMethod->clear();
-    QPair<QString, QString> method;
-    Q_FOREACH ( method, QgsRasterDataProvider::pyramidResamplingMethods( mRasterLayer->providerType() ) )
+
+    const auto constProviderType = QgsRasterDataProvider::pyramidResamplingMethods( mRasterLayer->providerType() );
+    for ( QPair<QString, QString> method : constProviderType )
     {
       cboResamplingMethod->addItem( method.second, method.first );
     }
@@ -392,7 +393,8 @@ QgsRasterLayerProperties::QgsRasterLayerProperties( QgsMapLayer *lyr, QgsMapCanv
   //fill available renderers into combo box
   QgsRasterRendererRegistryEntry entry;
   mDisableRenderTypeComboBoxCurrentIndexChanged = true;
-  Q_FOREACH ( const QString &name, QgsApplication::rasterRendererRegistry()->renderersList() )
+  const auto constRenderersList = QgsApplication::rasterRendererRegistry()->renderersList();
+  for ( const QString &name : constRenderersList )
   {
     if ( QgsApplication::rasterRendererRegistry()->rendererData( name, entry ) )
     {
@@ -833,6 +835,11 @@ void QgsRasterLayerProperties::sync()
  */
 void QgsRasterLayerProperties::apply()
 {
+
+  // Do nothing on "bad" layers
+  if ( !mRasterLayer->isValid() )
+    return;
+
   /*
    * Legend Tab
    */
@@ -1193,7 +1200,7 @@ void QgsRasterLayerProperties::urlClicked( const QUrl &url )
 
 void QgsRasterLayerProperties::mRenderTypeComboBox_currentIndexChanged( int index )
 {
-  if ( index < 0 || mDisableRenderTypeComboBoxCurrentIndexChanged )
+  if ( index < 0 || mDisableRenderTypeComboBoxCurrentIndexChanged || ! mRasterLayer->renderer() )
   {
     return;
   }
@@ -1410,7 +1417,7 @@ void QgsRasterLayerProperties::pbnExportTransparentPixelValues_clicked()
 
 void QgsRasterLayerProperties::transparencyCellTextEdited( const QString &text )
 {
-  Q_UNUSED( text );
+  Q_UNUSED( text )
   QgsDebugMsg( QStringLiteral( "text = %1" ).arg( text ) );
   QgsRasterRenderer *renderer = mRendererWidget->renderer();
   if ( !renderer )
@@ -1643,7 +1650,7 @@ void QgsRasterLayerProperties::pbnRemoveSelectedRow_clicked()
 
 void QgsRasterLayerProperties::pixelSelected( const QgsPointXY &canvasPoint, const Qt::MouseButton &btn )
 {
-  Q_UNUSED( btn );
+  Q_UNUSED( btn )
   QgsRasterRenderer *renderer = mRendererWidget->renderer();
   if ( !renderer )
   {

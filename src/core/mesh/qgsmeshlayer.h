@@ -24,6 +24,7 @@
 #include "qgsmaplayer.h"
 #include "qgsmeshdataprovider.h"
 #include "qgsmeshrenderersettings.h"
+#include "qgsmeshtimesettings.h"
 
 class QgsMapLayerRenderer;
 struct QgsMeshLayerRendererCache;
@@ -96,7 +97,16 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
      */
     struct LayerOptions
     {
-      int unused;  //!< @todo remove me once there are actual members here (breaks SIP <4.19)
+
+      /**
+       * Constructor for LayerOptions with optional \a transformContext.
+       * \note transformContext argument was added in QGIS 3.8
+       */
+      explicit LayerOptions( const QgsCoordinateTransformContext &transformContext = QgsCoordinateTransformContext( ) )
+        : transformContext( transformContext )
+      {}
+
+      QgsCoordinateTransformContext transformContext;
     };
 
     /**
@@ -112,8 +122,9 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
      * \param providerLib  The name of the data provider, e.g., "mesh_memory", "mdal"
      * \param options general mesh layer options
      */
-    explicit QgsMeshLayer( const QString &path = QString(), const QString &baseName = QString(), const QString &providerLib = "mesh_memory",
+    explicit QgsMeshLayer( const QString &path = QString(), const QString &baseName = QString(), const QString &providerLib = QStringLiteral( "mesh_memory" ),
                            const QgsMeshLayer::LayerOptions &options = QgsMeshLayer::LayerOptions() );
+
     ~QgsMeshLayer() override;
 
     //! QgsMeshLayer cannot be copied.
@@ -134,6 +145,8 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
     QString decodedSource( const QString &source, const QString &provider, const QgsReadWriteContext &context ) const override;
     bool readXml( const QDomNode &layer_node, QgsReadWriteContext &context ) override;
     bool writeXml( QDomNode &layer_node, QDomDocument &doc, const QgsReadWriteContext &context ) const override;
+
+    void reload() override;
 
     //! Returns the provider type for this layer
     QString providerType() const;
@@ -179,6 +192,28 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
     void setRendererSettings( const QgsMeshRendererSettings &settings );
 
     /**
+     * Returns time format settings
+     *
+     * \since QGIS 3.8
+     */
+    QgsMeshTimeSettings timeSettings() const;
+
+    /**
+     * Sets time format settings
+     *
+     * \since QGIS 3.8
+     */
+    void setTimeSettings( const QgsMeshTimeSettings &settings );
+
+    /**
+     * Returns (date) time in hours formatted to human readable form
+     * \param hours time in double in hours
+     * \returns formatted time string
+     * \since QGIS 3.8
+     */
+    QString formatTime( double hours );
+
+    /**
       * Interpolates the value on the given point from given dataset.
       *
       * \note It uses previously cached and indexed triangular mesh
@@ -195,6 +230,16 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
       */
     QgsMeshDatasetValue datasetValue( const QgsMeshDatasetIndex &index, const QgsPointXY &point ) const;
 
+  public slots:
+
+    /**
+     * Sets the coordinate transform context to \a transformContext.
+     *
+     * \since QGIS 3.8
+     */
+    void setTransformContext( const QgsCoordinateTransformContext &transformContext ) override;
+
+
   signals:
 
     /**
@@ -210,6 +255,13 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
      * \since QGIS 3.4
      */
     void activeVectorDatasetChanged( const QgsMeshDatasetIndex &index );
+
+    /**
+     * Emitted when time format is changed
+     *
+     * \since QGIS 3.8
+     */
+    void timeSettingsChanged( );
 
   private: // Private methods
 
@@ -252,6 +304,10 @@ class CORE_EXPORT QgsMeshLayer : public QgsMapLayer
 
     //! Renderer configuration
     QgsMeshRendererSettings mRendererSettings;
+
+    //! Time format configuration
+    QgsMeshTimeSettings mTimeSettings;
+
 };
 
 #endif //QGSMESHLAYER_H
